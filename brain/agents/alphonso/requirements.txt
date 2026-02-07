@@ -1,0 +1,6 @@
+# Alphonso Agent dependencies
+#
+# LLM SDK
+anthropic>=0.40
+# MCP client (Python SDK for Model Context Protocol)
+mcp>=1.0

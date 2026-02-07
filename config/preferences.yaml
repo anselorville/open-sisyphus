@@ -1,0 +1,19 @@
+# AI 助手偏好配置
+# 这些配置影响助手的行为风格
+
+# 语言偏好
+language: zh-CN
+response_style: concise    # concise | detailed | adaptive
+
+# 搜索偏好
+default_search_engine: google
+search_language: zh-CN
+
+# 工作习惯
+auto_create_worklog: true
+auto_daily_summary: true
+auto_weekly_report: true
+
+# 安全
+max_file_size_mb: 100
+allowed_domains: "*"       # 可访问的域名，* 表示不限制

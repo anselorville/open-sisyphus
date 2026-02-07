@@ -1,0 +1,16 @@
+# Friday 的能力清单
+# 每个助手/技能对应 brain/ 下的一个模块
+
+assistants:
+  alphonso:
+    enabled: true
+    description: "上网查资料（headless Chrome + Playwright）"
+    module: "brain.agents.alphonso"
+    status: ready
+
+skills: {}
+  # 未来扩展的技能在此注册
+  # example_skill:
+  #   enabled: true
+  #   description: "示例技能"
+  #   module: "brain.skills.example"

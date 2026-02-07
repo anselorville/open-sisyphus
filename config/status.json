@@ -1,0 +1,16 @@
+{
+  "last_active": null,
+  "total_sessions": 0,
+  "last_session_id": null,
+  "health": {
+    "gpu_available": null,
+    "postgres_connected": null,
+    "chrome_available": null
+  },
+  "stats": {
+    "worklog_entries": 0,
+    "memory_notes": 0,
+    "backlog_items": 0,
+    "blocked_items": 0
+  }
+}
