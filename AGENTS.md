@@ -196,6 +196,9 @@ openclaw gateway restart       # 重启 Gateway 使配置生效
 │   ├── reports/            #   报告
 │   ├── exports/            #   导出
 │   └── snapshots/          #   截图
+├── credentials/            # 凭证库（按需读取，不注入 prompt）
+│   ├── _index.md           #   凭证清单（仅服务名，无密码）
+│   └── {service}.md        #   各服务凭证文件
 ├── projects/               # 项目空间
 ├── config/                 # 偏好设置
 ├── tools/                  # 工具箱
