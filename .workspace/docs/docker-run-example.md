@@ -1,6 +1,6 @@
 # Docker 运行示例
 
-Friday 容器内默认以 root 运行，使用 host 网络模式（与主机网络栈完全共享），并通过 nvidia-container-toolkit 直通 GPU。
+Sisyphus 容器内默认以 root 运行，使用 host 网络模式（与主机网络栈完全共享），并通过 nvidia-container-toolkit 直通 GPU。
 
 ## 前置要求（主机）
 
@@ -32,7 +32,7 @@ docker compose exec dev bash
 
 | 服务 | 说明 | 网络 |
 |------|------|------|
-| `dev` | Friday 环境（Python 3.13 + Node 24 + Chrome + GPU + OpenClaw） | host 模式（与主机共享） |
+| `dev` | Sisyphus 环境（Python 3.13 + Node 24 + Chrome + GPU + OpenClaw） | host 模式（与主机共享） |
 | `postgres` | Postgres 15 | bridge，端口 5432 映射到主机 |
 
 **host 网络模式下**：
@@ -84,7 +84,7 @@ docker compose up -d postgres
 ### 构建镜像
 
 ```bash
-docker build -t friday-dev -f .system/Dockerfile .
+docker build -t sisyphus-dev -f .system/Dockerfile .
 ```
 
 可选 pip 源参数（参见 [docker-pip-config.md](docker-pip-config.md)）：
@@ -98,7 +98,7 @@ docker build -t openclaw-dev -f .system/Dockerfile \
 ### 运行（含 GPU + host 网络 + 挂载）
 
 ```powershell
-docker run -it --gpus all --network host -v E:\openfriday-workspace:/workspace friday-dev
+docker run -it --gpus all --network host -v E:\opensisyphus-workspace:/workspace sisyphus-dev
 ```
 
 ### 验收命令（容器内）

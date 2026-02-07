@@ -1,17 +1,17 @@
 # 飞书 (Feishu) Channel 接入指南
 
-本文档指导如何让 Friday 通过飞书与外界对话。
+本文档指导如何让 Sisyphus 通过飞书与外界对话。
 
 ---
 
 ## 概述
 
-Friday 使用 [OpenClaw](https://docs.openclaw.ai/) 作为 Gateway，通过其 Feishu 插件接入飞书。
+Sisyphus 使用 [OpenClaw](https://docs.openclaw.ai/) 作为 Gateway，通过其 Feishu 插件接入飞书。
 消息流向如下：
 
 ```
-飞书用户 → 飞书平台 → WebSocket → OpenClaw Gateway → Friday
-Friday → OpenClaw Gateway → 飞书平台 → 飞书用户
+飞书用户 → 飞书平台 → WebSocket → OpenClaw Gateway → Sisyphus
+Sisyphus → OpenClaw Gateway → 飞书平台 → 飞书用户
 ```
 
 特点：
@@ -26,7 +26,7 @@ Friday → OpenClaw Gateway → 飞书平台 → 飞书用户
 
 | 组件 | 要求 |
 |------|------|
-| Friday 容器 | 已启动，网络正常 |
+| Sisyphus 容器 | 已启动，网络正常 |
 | 飞书企业账号 | 能创建企业应用 |
 
 ---
@@ -42,7 +42,7 @@ Friday → OpenClaw Gateway → 飞书平台 → 飞书用户
 ### 2. 创建企业应用
 
 1. 点击 **创建企业自建应用**
-2. 填写应用名称（如 "Friday 助手"）和描述
+2. 填写应用名称（如 "Sisyphus 助手"）和描述
 3. 选择应用图标
 
 ### 3. 复制凭证
@@ -82,7 +82,7 @@ Friday → OpenClaw Gateway → 飞书平台 → 飞书用户
 
 在 **应用能力** > **机器人** 中：
 1. 开启机器人能力
-2. 设置机器人名称（如 "Friday"）
+2. 设置机器人名称（如 "Sisyphus"）
 
 ### 6. 配置事件订阅
 
@@ -100,7 +100,7 @@ Friday → OpenClaw Gateway → 飞书平台 → 飞书用户
 
 ---
 
-## 第二步：配置 Friday
+## 第二步：配置 Sisyphus
 
 ### 方式 A：环境变量（推荐）
 
@@ -143,7 +143,7 @@ openclaw channels add
         "main": {
           "appId": "cli_xxx",
           "appSecret": "xxx",
-          "botName": "Friday"
+          "botName": "Sisyphus"
         }
       }
     }
@@ -231,7 +231,7 @@ openclaw pairing approve feishu <CODE>
 
 | 命令 | 作用 |
 |------|------|
-| `/status` | 查看 Friday 状态 |
+| `/status` | 查看 Sisyphus 状态 |
 | `/reset` | 重置当前会话 |
 | `/model` | 查看/切换模型 |
 

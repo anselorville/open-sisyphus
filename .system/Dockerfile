@@ -91,7 +91,7 @@ RUN . "$NVM_DIR/nvm.sh" && node -v && npm -v && python3.13 --version \
 # ╚══════════════════════════════════════════════════════════════════════════╝
 FROM builder AS runtime
 
-LABEL maintainer="friday-dev"
+LABEL maintainer="sisyphus-dev"
 
 # --- Python 业务依赖（改 requirements.txt 才触发） ---
 COPY brain/agents/alphonso/requirements.txt /tmp/alphonso-requirements.txt

@@ -1,5 +1,5 @@
 # ============================================================================
-# Friday 运行环境 + Postgres 15
+# Sisyphus 运行环境 + Postgres 15
 # dev 使用 host 网络（与主机完全互通）+ NVIDIA GPU 直通
 #
 # 用法：
@@ -16,8 +16,8 @@ services:
     build:
       context: ..
       dockerfile: .system/Dockerfile
-    image: friday-dev
-    container_name: friday-dev
+    image: sisyphus-dev
+    container_name: sisyphus-dev
     stdin_open: true
     tty: true
     working_dir: /workspace
@@ -37,7 +37,7 @@ services:
       # NVIDIA（容器内可见）
       - NVIDIA_VISIBLE_DEVICES=all
       - NVIDIA_DRIVER_CAPABILITIES=compute,utility,graphics
-      # Friday
+      # Sisyphus
       - PYTHONPATH=/workspace
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
       # OpenClaw Gateway
@@ -60,7 +60,7 @@ services:
 
   postgres:
     image: postgres:15
-    container_name: friday-postgres
+    container_name: sisyphus-postgres
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-dev}

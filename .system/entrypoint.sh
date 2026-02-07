@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ============================================================================
-# Friday 容器入口脚本
+# Sisyphus 容器入口脚本
 #
 # 1. 加载 nvm（使 node/npx/openclaw 在非交互 shell 中可用）
 # 2. 激活 base Python venv
