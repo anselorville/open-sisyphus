@@ -227,6 +227,7 @@ Sisyphus 拥有容器的全部权限，没有人为限制。但有三件事必�
 
 ## 相关文档
 
+- **[docs/GET-STARTED.md](docs/GET-STARTED.md) — 从零开始入门指南**
 - [SOUL.md](SOUL.md) — Sisyphus 的身份定义
 - [AGENTS.md](AGENTS.md) — 行为规范与工作准则
 - [docs/INSTALL-TORCH-CUDA.md](docs/INSTALL-TORCH-CUDA.md) — PyTorch GPU 安装指南
