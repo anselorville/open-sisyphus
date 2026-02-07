@@ -98,7 +98,7 @@ docker build -t openclaw-dev -f .system/Dockerfile \
 ### 运行（含 GPU + host 网络 + 挂载）
 
 ```powershell
-docker run -it --gpus all --network host -v E:\opencode-workspace:/workspace friday-dev
+docker run -it --gpus all --network host -v E:\openfriday-workspace:/workspace friday-dev
 ```
 
 ### 验收命令（容器内）
