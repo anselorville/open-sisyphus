@@ -7,6 +7,7 @@
 ## 设计哲学
 
 - **容器即家园**：Sisyphus 拥有容器内的 root 权限，整个容器是他的私有空间
+- **源码与数据分离**：项目仓库定义"Sisyphus 是谁"，构建时 bake 进镜像；运行时数据通过数据卷持久化，与源码目录完全无关
 - **自律而非限制**：没有人为的权限围栏，取而代之的是对网络、系统完整性和数据的珍惜意识
 - **随时能述职**：目录结构围绕"工作记录 → 知识积累 → 任务管理"设计，任何时候都能清晰汇报
 - **能力可扩展**：通过助手团队（如 Alphonso）、MCP 工具、OpenClaw Channel 灵活扩展能力边界
@@ -20,114 +21,115 @@
 | Node.js | 24（nvm 管理，v0.40.2） |
 | 浏览器 | headless Google Chrome（无图形界面 + 中文字体） |
 | 数据库 | PostgreSQL 15 |
-| GPU | NVIDIA GPU 直通（CUDA 12.6），支持魔改 GTX 2080 Ti（22GB） |
+| GPU | NVIDIA GPU 直通（可选） |
 | 网络 | `network_mode: host`，容器与主机共享网络栈 |
 | 通信网关 | [OpenClaw](https://github.com/openclaw/openclaw) + 飞书插件 |
 | pip 源 | 清华镜像（默认） |
 | 时区 | Asia/Shanghai (UTC+8) |
 
-## 目录结构
+## 架构：容器即办公室
+
+核心隐喻：**这个容器是 AI 助手的办公室。**
 
 ```
-/workspace/
-├── SOUL.md                     # Sisyphus 的身份定义
-├── AGENTS.md                   # 行为规范与工作准则
-├── .mcp.json                   # MCP Server 配置（Playwright 等）
+项目仓库                            Docker 镜像                  运行中的容器
+┌──────────────┐                ┌─────────────────┐         ┌──────────────────┐
+│ 定义          │  docker build  │ 工具链           │  run    │ /workspace/      │
+│ "Sisyphus     │ ──────────→   │ + /workspace/   │ ────→   │  (数据卷持久化)   │
+│  是谁"        │  COPY 进镜像   │   完整办公室布局  │         │                  │
+│              │                │ + /opt/brain/   │         │  brain/ 每次启动  │
+│ SOUL.md      │                │   (代码同步源)   │         │  从镜像同步最新   │
+│ brain/       │                └─────────────────┘         │                  │
+│ config/      │                                            │  其余文件首次     │
+│ .system/     │                                            │  由空卷自动填充   │
+└──────────────┘                                            └──────────────────┘
+```
+
+- **构建镜像** = 装修办公室（安装工具链 + 在 `/workspace` 创建完整目录结构和定义文件）
+- **首次启动** = 搬进办公室（Docker 空卷自动用镜像层 `/workspace` 内容填充）
+- **后续启动** = 每天开门上班（仅同步 `brain/` 代码更新，数据完整保留）
+- **更新 Sisyphus** = `git pull` + `docker compose up --build`（重建镜像，下次启动自动同步代码）
+
+### 项目仓库（源码）
+
+```
+open-sisyphus/                  # 你 clone 的目录
+├── SOUL.md                     # 身份定义
+├── AGENTS.md                   # 行为规范
+├── IDENTITY.md / TOOLS.md / BOOT.md / HEARTBEAT.md / USER.md
+├── .mcp.json                   # MCP Server 配置
 │
-├── brain/                      # 能力中枢
-│   ├── agents/                 #   助手团队
-│   │   └── alphonso/           #     Web 信息检索助手
-│   ├── channels/               #   对话渠道说明
+├── brain/                      # 能力代码
+│   ├── agents/alphonso/        #   Web 信息检索助手
 │   ├── skills/                 #   技能模块
 │   └── prompts/                #   提示词模板
 │
-├── memory/                     # 记忆系统（跨会话知识积累）
-│   ├── notepad/
-│   │   ├── learnings/          #     经验教训
-│   │   ├── references/         #     参考资料
-│   │   └── patterns/           #     最佳实践
+├── config/                     # 初始配置
+│   └── openclaw.json           #   OpenClaw Gateway 配置
+│
+├── credentials/                # 凭证库（README + 索引模板）
+├── tools/                      # 工具箱
+├── docs/                       # 文档
+│
+└── .system/                    # 容器基础设施
+    ├── Dockerfile              #   多阶段构建
+    ├── docker-compose.yml      #   服务编排
+    ├── entrypoint.sh           #   入口脚本（环境加载 + brain 同步）
+    ├── .docker/pip.conf        #   pip 源配置
+    └── .env.example            #   环境变量模板
+```
+
+### 容器 `/workspace/`（Sisyphus 的办公室）
+
+构建时创建好完整布局，数据卷持久化：
+
+```
+/workspace/                     # AI 助手的办公室
+├── SOUL.md / AGENTS.md / ...   # 身份与规范定义
+├── brain/                      # 大脑（每次启动从镜像同步最新代码）
+├── config/                     # 配置（偏好、OpenClaw 等）
+│
+├── memory/                     # 记忆系统（跨会话积累）
+│   ├── notepad/                #   learnings / references / patterns
 │   └── index/                  #   记忆索引
-│
 ├── worklog/                    # 工作日志（述职核心）
-│   ├── YYYY-MM-DD/             #   按天分目录
-│   │   ├── session-*.md        #     单次对话纪要
-│   │   └── daily-summary.md    #     当日汇总
-│   └── weekly/                 #   周报
+├── inbox/                      # 收件箱（backlog / blocked / ideas）
+├── artifacts/                  # 产出物（reports / exports / snapshots）
 │
-├── inbox/                      # 任务管理
-│   ├── backlog.md              #   待办
-│   ├── blocked.md              #   阻塞项
-│   └── ideas.md                #   想法暂存
-│
-├── artifacts/                  # 工作产出
-│   ├── reports/                #   报告
-│   ├── exports/                #   导出文件
-│   └── snapshots/              #   截图 / 快照
-│
-├── projects/                   # 项目工作区（代码类工作在这里）
-├── config/                     # 助手配置（OpenClaw、偏好等）
-├── tools/                      # 工具箱（脚本、模板）
-├── docs/                       # 正式文档
-│
-├── .system/                    # 容器基础设施
-│   ├── Dockerfile              #   多阶段构建（builder → runtime）
-│   ├── docker-compose.yml      #   编排（dev + postgres）
-│   ├── entrypoint.sh           #   容器入口脚本
-│   ├── .docker/pip.conf        #   pip 源配置
-│   └── .env.example            #   环境变量模板
-│
-└── .workspace/                 # 内部工作区（临时文件、草稿）
+├── projects/                   # 项目空间
+├── credentials/                # 凭证库（按需读取）
+├── tools/                      # 工具箱
+├── docs/                       # 文档
+└── .workspace/                 # 内部工作区（临时文件）
 ```
 
 ## 快速开始
 
-### 前置条件
+详细的从零到对话指南见 **[docs/GET-STARTED.md](docs/GET-STARTED.md)**。
 
-- Docker & Docker Compose
-- NVIDIA Container Toolkit（如需 GPU）
-- 本地已有镜像：`ubuntu:22.04`、`postgres:15`
-
-### 1. 克隆项目
+### 极简版
 
 ```bash
+# 1. 克隆
 git clone <repo-url> open-sisyphus
 cd open-sisyphus
-```
 
-### 2. 配置环境变量
-
-```bash
+# 2. 配置
 cp .system/.env.example .system/.env
-# 编辑 .system/.env，填入必要的密钥：
-#   ANTHROPIC_API_KEY    — Alphonso 助手的 LLM API 密钥
-#   FEISHU_APP_ID        — 飞书应用 ID（可选）
-#   FEISHU_APP_SECRET    — 飞书应用密钥（可选）
-```
+# 编辑 .system/.env，至少填入 ANTHROPIC_API_KEY
 
-### 3. 构建并启动
-
-```bash
+# 3. 构建并启动
 cd .system
 docker compose up -d --build
-```
 
-### 4. 进入容器
-
-```bash
+# 4. 进入容器
 docker compose exec dev bash
-```
 
-进入后即处于 base venv 中，可直接使用 `python`、`node`、`npm`、`pnpm` 等命令。
+# 5. 验证
+python --version && node -v && openclaw --version
 
-### 5. 验证环境
-
-```bash
-python --version          # Python 3.13.x
-node -v                   # v24.x.x
-nvm --version             # 0.40.2
-nvidia-smi                # GPU 信息（如已配置）
-google-chrome-stable --version  # Chrome 版本
-openclaw --version        # OpenClaw 版本
+# 6. 启动对话网关
+openclaw gateway
 ```
 
 ## 核心组件
@@ -196,7 +198,10 @@ pip install torch torchvision torchaudio --index-url https://download.pytorch.or
 | 阶段 | 内容 | 触发条件 |
 |------|------|----------|
 | **builder** | 系统依赖、Python 3.13、Node.js 24、Chrome、全局 npm 包 | 系统级变更（很少） |
-| **runtime** | Python 业务依赖、shell 配置、entrypoint | 业务代码变更（秒级重建） |
+| **runtime** | Python 业务依赖 + `/workspace` 完整办公室布局（定义文件、目录结构）+ entrypoint | 定义/代码变更（秒级重建） |
+
+runtime 阶段在镜像内创建好 `/workspace` 的完整目录结构，COPY 所有定义文件和代码。
+首次挂载空数据卷时 Docker 自动用镜像层填充；后续启动 entrypoint 仅同步 `brain/`。
 
 单独缓存 builder 阶段：
 

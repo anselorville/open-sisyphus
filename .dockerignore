@@ -1,0 +1,28 @@
+# Git
+.git
+.gitignore
+
+# 运行时数据目录（不应进入镜像）
+worklog/
+memory/
+inbox/
+artifacts/
+projects/
+.workspace/
+
+# 凭证：排除实际凭证文件，仅保留 README 和索引
+credentials/*.md
+!credentials/README.md
+!credentials/_index.md
+
+# 文档（不需要在镜像中）
+docs/
+
+# 系统配置中的敏感文件
+.system/.env
+
+# 编辑器 / IDE
+.vscode/
+.idea/
+*.swp
+*.swo

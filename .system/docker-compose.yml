@@ -1,14 +1,18 @@
 # ============================================================================
 # Sisyphus 运行环境 + Postgres 15
-# dev 使用 host 网络（与主机完全互通）+ NVIDIA GPU 直通
+#
+# 隐喻：这个容器是 AI 助手的"办公室"
+#   镜像 = 装修好的办公室（工具链 + 目录结构 + 定义文件）
+#   数据卷 = 文件柜（工作日志、记忆、产出物持久化）
+#
+# /workspace 的完整目录结构在构建时创建好。
+# 首次启动挂载空 named volume 时，Docker 自动用镜像层填充。
+# 后续启动 entrypoint 仅同步 brain/（代码更新）。
 #
 # 用法：
 #   cd .system
 #   docker compose up -d --build
 #   docker compose exec dev bash
-#
-# 启动 OpenClaw Gateway（在容器内）：
-#   openclaw gateway
 # ============================================================================
 
 services:
@@ -21,20 +25,23 @@ services:
     stdin_open: true
     tty: true
     working_dir: /workspace
-    # ---------- host 网络：容器与主机网络栈完全共享 ----------
+    # ---------- host 网络 ----------
     network_mode: host
     volumes:
-      - ..:/workspace
-      # OpenClaw 持久化数据（sessions、配置等）
+      # /workspace 数据卷：AI 助手的文件柜
+      # 首次空卷 → Docker 自动用镜像层 /workspace 填充
+      # 后续 → 保留已有数据，entrypoint 仅同步 brain/
+      - workspace_data:/workspace
+      # OpenClaw 持久化（sessions 等）
       - openclaw_data:/root/.openclaw
     environment:
-      # Postgres（host 网络下直接 localhost 访问）
+      # Postgres
       - POSTGRES_HOST=localhost
       - POSTGRES_PORT=5432
       - POSTGRES_USER=${POSTGRES_USER:-dev}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-dev}
       - POSTGRES_DB=${POSTGRES_DB:-app}
-      # NVIDIA（容器内可见）
+      # NVIDIA
       - NVIDIA_VISIBLE_DEVICES=all
       - NVIDIA_DRIVER_CAPABILITIES=compute,utility,graphics
       # Sisyphus
@@ -77,5 +84,6 @@ services:
       retries: 5
 
 volumes:
+  workspace_data:
   postgres_data:
   openclaw_data:

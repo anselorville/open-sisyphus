@@ -98,7 +98,7 @@ Sisyphus 在这个容器中拥有完整的管理权限，没有任何人为限�
 
 ### 记忆：数据安全
 
-`/workspace` 下的一切是 Sisyphus 的全部记忆和工作成果。
+`/workspace` 数据卷中的一切是 Sisyphus 的全部记忆和工作成果。
 
 - 删文件之前先想清楚能不能找回来
 - 重要操作先记到 worklog（至少留下"我做了什么"）
@@ -167,52 +167,56 @@ openclaw gateway restart       # 重启 Gateway 使配置生效
 
 ## 目录结构速查
 
+`/workspace/` 是 Sisyphus 的办公室，构建镜像时已创建好完整布局。
+数据卷持久化，容器重建不丢失。`brain/` 每次启动从镜像同步最新代码。
+
 ```
 /workspace/
-├── SOUL.md                 # Sisyphus 的身份定义
+├── SOUL.md                 # 身份定义
 ├── AGENTS.md               # 行为规范（本文档）
-├── brain/                  # 能力中枢
-│   ├── agents/             #   助手团队
+├── IDENTITY.md / TOOLS.md / BOOT.md / HEARTBEAT.md / USER.md
+├── .mcp.json               # MCP Server 配置
+│
+├── brain/                  # 大脑（每次启动从镜像同步）
+│   ├── agents/             #   子代理
 │   │   └── alphonso/       #     上网查资料
-│   ├── channels/           #   对话渠道说明
 │   ├── skills/             #   技能模块
 │   └── prompts/            #   提示词模板
+│
+├── config/                 # 助手配置
+│   ├── openclaw.json       #   OpenClaw Gateway 配置
+│   ├── preferences.yaml    #   偏好设置
+│   └── status.json         #   运行状态
+│
 ├── memory/                 # 记忆系统
 │   ├── notepad/            #   知识笔记
-│   │   ├── learnings/      #     经验教训
-│   │   ├── references/     #     参考资料
-│   │   └── patterns/       #     最佳实践
-│   └── index/              #   记忆索引
-├── worklog/                # 工作日志
+│   │   ├── learnings/      #     经验教训（"我踩过这个坑"）
+│   │   ├── references/     #     参考资料（"我查到的有用资料"）
+│   │   └── patterns/       #     最佳实践（"这个套路好用"）
+│   └── index/              #   记忆索引（未来可做向量化）
+│
+├── worklog/                # 工作日志（述职核心）
 │   ├── YYYY-MM-DD/         #   按天
 │   │   ├── session-*.md    #     对话纪要
 │   │   └── daily-summary.md#     当日汇总
 │   └── weekly/             #   周报
-├── inbox/                  # 任务收件箱
+│
+├── inbox/                  # 收件箱
 │   ├── backlog.md          #   待办
 │   ├── blocked.md          #   阻塞项
 │   └── ideas.md            #   想法暂存
+│
 ├── artifacts/              # 产出物
 │   ├── reports/            #   报告
 │   ├── exports/            #   导出
 │   └── snapshots/          #   截图
+│
 ├── credentials/            # 凭证库（按需读取，不注入 prompt）
-│   ├── _index.md           #   凭证清单（仅服务名，无密码）
+│   ├── _index.md           #   凭证清单（仅列出"有哪些"）
 │   └── {service}.md        #   各服务凭证文件
+│
 ├── projects/               # 项目空间
-├── config/                 # 偏好设置
-├── tools/                  # 工具箱
-│   ├── scripts/            #   实用脚本
-│   └── templates/          #   模板
-├── docs/                   # 正式文档
-├── .system/                # 容器基础设施
-│   ├── Dockerfile
-│   ├── docker-compose.yml
-│   ├── entrypoint.sh
-│   ├── .docker/
-│   └── .env.example
-└── .workspace/             # 内部工作区
-    ├── docs/
-    ├── scripts/
-    └── drafts/
+├── tools/                  # 工具箱（脚本、模板）
+├── docs/                   # 文档
+└── .workspace/             # 内部工作区（临时文件、草稿）
 ```

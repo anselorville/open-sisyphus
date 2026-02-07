@@ -4,16 +4,42 @@
 
 ---
 
-## 总览
+## 核心概念
 
-整个过程分为五步：
+这个容器是 AI 助手的**办公室**。
+
+- **构建镜像** = 装修办公室（安装工具链、创建目录结构、放好身份手册和能力代码）
+- **数据卷** = 办公室里的文件柜（工作日志、记忆、产出物持久化保存）
+- **Channels** = 办公室的门（飞书等渠道的人来"敲门"下达任务）
+- **更新 Sisyphus** = `git pull` + 重新装修（重建镜像，下次启动自动同步代码）
+
+```
+项目仓库（源码）                     容器（办公室）
+┌───────────────┐                 ┌─────────────────────┐
+│ SOUL.md       │                 │ /workspace/          │
+│ brain/        │  docker build   │  ├── brain/  (代码)   │
+│ config/       │ ─────────────→  │  ├── memory/ (记忆)   │
+│ .system/      │  COPY 到镜像     │  ├── worklog/(日志)   │
+│  Dockerfile   │  /workspace     │  ├── inbox/  (待办)   │
+│  compose.yml  │                 │  ├── artifacts/(产出) │
+└───────────────┘                 │  └── ...             │
+                                  └─────────────────────┘
+                                    ↑ 数据卷持久化
+                                    容器重建不丢失
+```
+
+项目仓库和容器运行时完全解耦——你 clone 的目录不会挂载进容器。
+
+---
+
+## 总览
 
 | 步骤 | 内容 | 预计耗时 |
 |------|------|----------|
 | [1. 前置条件](#1-前置条件) | 安装 Docker、NVIDIA 驱动（可选） | 视机器情况 |
 | [2. 克隆与配置](#2-克隆与配置) | 拉代码、填环境变量 | 2 分钟 |
-| [3. 构建镜像](#3-构建镜像) | 首次构建基础镜像 + 业务层 | 10–30 分钟（首次） |
-| [4. 启动并验证](#4-启动并验证) | 启动容器、确认环境就绪 | 2 分钟 |
+| [3. 构建镜像](#3-构建镜像) | 装修办公室 | 10–30 分钟（首次） |
+| [4. 启动并验证](#4-启动并验证) | 开门、检查设施 | 2 分钟 |
 | [5. 与 Sisyphus 对话](#5-与-sisyphus-对话) | 启动 Gateway、接入飞书 | 5 分钟 |
 
 ---
@@ -25,44 +51,37 @@
 | 软件 | 最低版本 | 说明 |
 |------|----------|------|
 | **Docker Engine** | 20.10+ | [安装指南](https://docs.docker.com/engine/install/) |
-| **Docker Compose** | v2 (集成在 Docker Desktop 或 `docker compose` 插件) | — |
+| **Docker Compose** | v2 | 集成在 Docker Desktop 或 `docker compose` 插件 |
 
-### 可选（GPU 支持）
+### 可选（GPU）
 
 | 软件 | 说明 |
 |------|------|
-| **NVIDIA 驱动** | 宿主机需安装 ≥ 535.x |
-| **NVIDIA Container Toolkit** | 让 Docker 容器使用 GPU，[安装指南](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html) |
+| **NVIDIA 驱动** | 宿主机 ≥ 535.x |
+| **NVIDIA Container Toolkit** | [安装指南](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html) |
 
-> **没有 GPU？** 完全没问题。Sisyphus 的核心功能（对话、浏览器、代码执行等）不依赖 GPU。
-> 只需在构建时去掉 GPU 相关配置即可（见 [附录 A](#附录-a-无-gpu-环境)）。
+> **没有 GPU？** 没问题，核心功能不依赖 GPU。见 [附录 A](#附录-a-无-gpu-环境)。
 
-### 验证 Docker 可用
-
-```bash
-docker --version        # Docker version 20.10+
-docker compose version  # Docker Compose version v2.x
-```
-
-验证 GPU（如适用）：
+### 验证
 
 ```bash
-nvidia-smi              # 能看到显卡信息
-docker run --rm --gpus all nvidia/cuda:12.6.0-base-ubuntu22.04 nvidia-smi
+docker --version          # 20.10+
+docker compose version    # v2.x
+nvidia-smi                # GPU（如适用）
 ```
 
 ---
 
 ## 2. 克隆与配置
 
-### 2.1 克隆项目
+### 2.1 克隆
 
 ```bash
 git clone <repo-url> open-sisyphus
 cd open-sisyphus
 ```
 
-### 2.2 创建环境变量文件
+### 2.2 创建环境变量
 
 ```bash
 cp .system/.env.example .system/.env
@@ -70,98 +89,79 @@ cp .system/.env.example .system/.env
 
 ### 2.3 编辑 `.system/.env`
 
-用你喜欢的编辑器打开 `.system/.env`，按需填写：
-
 ```bash
-# ── 必填 ──────────────────────────────────────────────
-# Anthropic API Key（Sisyphus 的大脑）
+# ── 必填 ──────────────────────────────────────
 ANTHROPIC_API_KEY=sk-ant-xxxxx
 
-# ── 可选：数据库（默认值即可用） ──────────────────────
+# ── 可选：数据库（默认即可用） ─────────────────
 POSTGRES_USER=dev
 POSTGRES_PASSWORD=dev
 POSTGRES_DB=app
 
-# ── 可选：飞书（如需飞书渠道） ────────────────────────
-# 在飞书开放平台创建应用后获取，详见 docs/FEISHU-CHANNEL-SETUP.md
+# ── 可选：飞书（详见 docs/FEISHU-CHANNEL-SETUP.md）
 FEISHU_APP_ID=cli_xxx
 FEISHU_APP_SECRET=your_secret
 
-# ── 可选：Gateway Token ───────────────────────────────
+# ── 可选：Gateway Token ───────────────────────
 OPENCLAW_GATEWAY_TOKEN=
 ```
 
-**最低启动要求**：只需要 `ANTHROPIC_API_KEY`。其余均可后续配置。
+**最低启动要求**：只需要 `ANTHROPIC_API_KEY`。
 
 ---
 
 ## 3. 构建镜像
 
-### 3.1 理解构建策略
+### 3.1 构建做了什么
 
-Sisyphus 使用**多阶段构建**，将重量级基础设施与轻量级业务层分离：
+两阶段构建：
 
-```
-┌─────────────────────────────────────────────────────┐
-│  Stage 1: builder                                   │
-│  Ubuntu 22.04 + Python 3.13 + Node 24 + Chrome      │
-│  + OpenClaw + Playwright MCP                         │
-│  （重且稳定，很少改动，构建一次长期缓存）                 │
-├─────────────────────────────────────────────────────┤
-│  Stage 2: runtime                                   │
-│  Python 业务依赖 + shell 配置 + entrypoint            │
-│  （轻且频繁变化，秒级重建）                              │
-└─────────────────────────────────────────────────────┘
-```
+| 阶段 | 内容 | 说明 |
+|------|------|------|
+| **builder** | Ubuntu 22.04 + Python 3.13 + Node 24 + Chrome + OpenClaw | 重且稳定，长期缓存 |
+| **runtime** | 业务依赖 + `/workspace` 完整目录结构 + 定义文件 | 改动后秒级重建 |
 
-### 3.2 首次完整构建
+runtime 阶段做的事：
+1. 安装 Python 业务依赖（Alphonso 等）
+2. 把项目中的定义文件（SOUL.md、AGENTS.md、brain/、config/ 等）COPY 到 `/workspace/`
+3. 创建空数据目录（worklog/、memory/、artifacts/ 等）
+4. 把 brain/ 额外复制一份到 `/opt/sisyphus-brain/` 作为代码同步源
+
+### 3.2 开始构建
 
 ```bash
 cd .system
 docker compose up -d --build
 ```
 
-首次构建需要下载和安装大量依赖，**耗时约 10–30 分钟**（取决于网络）。
-构建完成后会自动启动两个服务：
+首次约 **10–30 分钟**，取决于网络。完成后启动两个服务：
 
 | 服务 | 容器名 | 说明 |
 |------|--------|------|
-| `dev` | `sisyphus-dev` | Sisyphus 主环境 |
-| `postgres` | `sisyphus-postgres` | PostgreSQL 15 数据库 |
+| `dev` | `sisyphus-dev` | Sisyphus 办公室 |
+| `postgres` | `sisyphus-postgres` | PostgreSQL 15 |
 
-### 3.3 （推荐）单独缓存 builder 阶段
-
-如果你经常修改业务层代码，建议先单独构建 builder，这样后续重建只需几秒：
+### 3.3 （推荐）缓存 builder
 
 ```bash
-# 在项目根目录执行
+# 在项目根目录
 docker build --target builder -t sisyphus-builder -f .system/Dockerfile .
 
-# 之后正常启动（会复用 builder 缓存）
+# 之后日常重建秒级完成
 cd .system
 docker compose up -d --build
-```
-
-### 3.4 构建速度优化
-
-如果默认 pip 源（清华镜像）速度不理想，可以在构建时指定其他源：
-
-```bash
-docker compose build --build-arg PIP_INDEX_URL=https://pypi.org/simple/ dev
 ```
 
 ---
 
 ## 4. 启动并验证
 
-### 4.1 确认服务状态
+### 4.1 确认服务
 
 ```bash
 cd .system
 docker compose ps
 ```
-
-预期输出：
 
 ```
 NAME                STATUS              PORTS
@@ -169,304 +169,199 @@ sisyphus-dev        running
 sisyphus-postgres   running (healthy)   0.0.0.0:5432->5432/tcp
 ```
 
-> `dev` 容器使用 `network_mode: host`，因此不单独映射端口。
-
-### 4.2 进入容器
+### 4.2 进入办公室
 
 ```bash
 docker compose exec dev bash
 ```
 
-你现在处于 Sisyphus 的"家"：`/workspace`。
-Python venv 和 nvm 已自动激活。
+你现在在 `/workspace/`——Sisyphus 的办公室。
 
-### 4.3 验证环境
-
-在容器内逐项检查：
+### 4.3 看看里面有什么
 
 ```bash
-# Python
-python --version
-# → Python 3.13.x
-
-# Node.js
-node -v
-# → v24.x.x
-
-# npm / pnpm
-npm -v && pnpm -v
-
-# OpenClaw（对话网关）
-openclaw --version
-
-# Chrome（浏览器）
-google-chrome-stable --version
-
-# PostgreSQL 连接
-psql -h localhost -U dev -d app -c "SELECT 1;"
-# → 需输入密码 dev，返回 1 表示成功
-
-# GPU（如适用）
-nvidia-smi
+ls /workspace/
+# SOUL.md  AGENTS.md  IDENTITY.md  TOOLS.md  BOOT.md  HEARTBEAT.md  USER.md
+# brain/  config/  memory/  worklog/  inbox/  artifacts/  projects/
+# credentials/  tools/  docs/  .workspace/
 ```
 
-全部通过，说明环境已就绪。
+所有目录和定义文件已在构建时就位。
+
+### 4.4 验证工具链
+
+```bash
+python --version                  # Python 3.13.x
+node -v                           # v24.x.x
+openclaw --version                # OpenClaw
+google-chrome-stable --version    # Chrome
+psql -h localhost -U dev -d app -c "SELECT 1;"  # Postgres
+nvidia-smi                        # GPU（如适用）
+```
 
 ---
 
 ## 5. 与 Sisyphus 对话
 
-Sisyphus 通过 [OpenClaw](https://github.com/openclaw/openclaw) Gateway 与外界沟通。
-目前支持的渠道是**飞书**，未来可扩展到 Telegram、Discord、Slack 等。
-
-### 方式 A：通过飞书对话（推荐）
+### 方式 A：飞书（推荐）
 
 #### A.1 创建飞书应用
 
-前往 [飞书开放平台](https://open.feishu.cn/app)，创建一个企业自建应用。
-详细步骤见 [FEISHU-CHANNEL-SETUP.md](FEISHU-CHANNEL-SETUP.md)，核心流程：
+详见 [FEISHU-CHANNEL-SETUP.md](FEISHU-CHANNEL-SETUP.md)，核心流程：
 
-1. 创建应用，获取 **App ID** 和 **App Secret**
-2. 在**权限管理**中添加消息读写权限
-3. 在**应用能力**中开启机器人
-4. 在**事件订阅**中启用长连接 + 添加 `im.message.receive_v1` 事件
-5. 发布应用并通过审批
+1. [飞书开放平台](https://open.feishu.cn/app) 创建企业自建应用
+2. 获取 **App ID** + **App Secret**
+3. 添加消息读写权限
+4. 开启机器人能力
+5. 事件订阅：长连接 + `im.message.receive_v1`
+6. 发布并审批
 
-#### A.2 填入凭证
+#### A.2 配置凭证
 
-确保 `.system/.env` 中已填写：
-
-```bash
-FEISHU_APP_ID=cli_xxx
-FEISHU_APP_SECRET=your_secret
-ANTHROPIC_API_KEY=sk-ant-xxxxx
-```
-
-如果容器已在运行，需要重启以加载新的环境变量：
+确保 `.system/.env` 已填写飞书凭证，然后重启容器：
 
 ```bash
 cd .system
-docker compose down dev
-docker compose up -d dev
+docker compose down dev && docker compose up -d dev
 docker compose exec dev bash
 ```
 
 #### A.3 启动 Gateway
 
-在容器内执行：
-
 ```bash
 openclaw gateway
 ```
 
-首次运行会检测到飞书配置并自动建立 WebSocket 连接。
-看到类似以下日志即表示成功：
+看到以下日志即成功：
 
 ```
 [Gateway] Listening on 0.0.0.0:18789
 [Feishu]  Connected via WebSocket
 ```
 
-> **生产建议**：后台启动 Gateway：`openclaw gateway &`
+#### A.4 开始对话
 
-#### A.4 发起对话
-
-1. 在飞书中搜索你创建的机器人名称（如 "Sisyphus"）
-2. 发送第一条消息
-3. 首次会触发**配对审批**（`pairing` 策略），在容器内审批：
+1. 在飞书搜索机器人名称，发第一条消息
+2. 首次触发配对审批：
 
 ```bash
-# 查看待审批请求
 openclaw pairing list feishu
-
-# 审批通过
 openclaw pairing approve feishu <CODE>
 ```
 
-审批通过后，即可正常对话。你现在在和 Sisyphus 说话了。
+3. 审批通过，可以对话了
 
-#### A.5 群聊
-
-将机器人添加到飞书群组后：
-- 群聊中需要 **@mention** 机器人才会触发响应
-- 可在 `config/openclaw.json` 中修改群聊策略
-
-### 方式 B：容器内直接交互
-
-如果暂时不需要飞书，也可以直接在容器内使用 Sisyphus 的工具：
+### 方式 B：容器内直接使用
 
 ```bash
-# 使用 Alphonso 查资料
+# Alphonso 查资料
 python -m brain.agents.alphonso "最近有什么 AI 领域的重要论文"
 
-# 使用 OpenClaw CLI 对话（如已配置 API Key）
+# OpenClaw CLI
 openclaw chat
 ```
 
 ---
 
-## 日常操作速查
-
-### 启动 / 停止
+## 日常操作
 
 ```bash
 cd .system
 
-# 启动全部服务
-docker compose up -d
+docker compose up -d             # 启动
+docker compose down               # 停止
+docker compose restart dev        # 重启
+docker compose exec dev bash      # 进入办公室
 
-# 停止全部服务
-docker compose down
-
-# 仅重启 dev 容器
-docker compose restart dev
-
-# 进入容器
-docker compose exec dev bash
+docker compose logs -f dev        # 容器日志
 ```
 
-### 查看日志
+### 更新 Sisyphus
 
 ```bash
-# Docker 容器日志
-docker compose logs -f dev
-
-# OpenClaw Gateway 日志（容器内）
-openclaw logs --follow
+cd open-sisyphus
+git pull
+cd .system
+docker compose up -d --build     # 重建镜像
 ```
 
-### 重建镜像
+重建后，下次启动 entrypoint 自动同步 `brain/` 最新代码到数据卷。
+工作数据（worklog、memory、artifacts 等）不受影响。
+
+### 数据备份
 
 ```bash
-# 业务层变更后重建（秒级）
-docker compose up -d --build
+# docker cp
+docker cp sisyphus-dev:/workspace ./workspace-backup
 
-# 如果修改了 Dockerfile 的 builder 阶段，需要完整重建
-docker compose build --no-cache dev
+# volume 备份
+docker run --rm \
+  -v sisyphus_workspace_data:/data \
+  -v $(pwd):/backup \
+  alpine tar czf /backup/workspace.tar.gz -C /data .
 ```
 
 ---
 
 ## 附录 A：无 GPU 环境
 
-如果宿主机没有 NVIDIA GPU，需要修改 `.system/docker-compose.yml`，注释掉 GPU 相关配置：
-
-```yaml
-services:
-  dev:
-    # ... 其他配置不变 ...
-
-    # 注释掉以下环境变量
-    # environment:
-    #   - NVIDIA_VISIBLE_DEVICES=all
-    #   - NVIDIA_DRIVER_CAPABILITIES=compute,utility,graphics
-
-    # 注释掉 deploy 块
-    # deploy:
-    #   resources:
-    #     reservations:
-    #       devices:
-    #         - driver: nvidia
-    #           count: all
-    #           capabilities: [gpu]
-```
-
-或者更简洁的做法——创建一个 override 文件 `.system/docker-compose.override.yml`：
+创建 `.system/docker-compose.override.yml`：
 
 ```yaml
 services:
   dev:
     deploy: {}
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=
+      - NVIDIA_DRIVER_CAPABILITIES=
 ```
-
-这会覆盖掉 GPU 配置，无需修改原始文件。
 
 ---
 
 ## 附录 B：中国大陆网络优化
 
-### Docker 镜像加速
-
-在 `/etc/docker/daemon.json`（宿主机）中添加镜像加速器：
+**Docker 镜像加速**（宿主机 `/etc/docker/daemon.json`）：
 
 ```json
-{
-  "registry-mirrors": [
-    "https://docker.m.daocloud.io"
-  ]
-}
+{ "registry-mirrors": ["https://docker.m.daocloud.io"] }
 ```
 
-然后重启 Docker：`sudo systemctl restart docker`
-
-### pip 源
-
-项目已默认配置清华镜像（`.system/.docker/pip.conf`），无需额外操作。
-如需修改，构建时传入参数：
+**pip 源**：已默认清华镜像。可构建时覆盖：
 
 ```bash
-docker compose build \
-  --build-arg PIP_INDEX_URL=https://mirrors.aliyun.com/pypi/simple/ \
-  dev
-```
-
-### npm 源
-
-如 npm 下载慢，可在构建前设置：
-
-```bash
-# 在 Dockerfile 中或构建时
-npm config set registry https://registry.npmmirror.com
+docker compose build --build-arg PIP_INDEX_URL=https://mirrors.aliyun.com/pypi/simple/ dev
 ```
 
 ---
 
 ## 附录 C：常见问题
 
-### Q: 构建时报 `nvidia` 相关错误
+**构建报 nvidia 错误** → 没有 NVIDIA Container Toolkit，见 [附录 A](#附录-a-无-gpu-环境)
 
-**原因**：宿主机没有安装 NVIDIA Container Toolkit。
-**解决**：参照 [附录 A](#附录-a-无-gpu-环境) 去掉 GPU 配置，或安装 NVIDIA Container Toolkit。
+**Postgres 端口冲突** → 宿主机 5432 已占用，改 compose 映射为 `"15432:5432"`
 
-### Q: Postgres 启动失败 / 端口冲突
+**`openclaw gateway` 连接失败** →
+1. `curl -s https://api.anthropic.com`（网络）
+2. 检查 `.env` 中 API Key
+3. 飞书应用是否已发布审批
+4. 事件订阅是否长连接模式
 
-**原因**：宿主机 5432 端口已被占用。
-**解决**：
+**飞书不回复** →
+1. `openclaw gateway status`
+2. `openclaw pairing list feishu`
+3. `openclaw logs --follow`
 
-```bash
-# 查看谁占了 5432
-lsof -i :5432      # Linux/macOS
-netstat -ano | findstr :5432   # Windows
+**想挂载宿主机目录（开发调试）** → 创建 override：
 
-# 方案 1：停掉本地 PostgreSQL
-# 方案 2：修改 docker-compose.yml 中的映射端口
-ports:
-  - "15432:5432"   # 改为 15432
+```yaml
+# .system/docker-compose.override.yml
+services:
+  dev:
+    volumes:
+      - /your/host/path:/workspace
 ```
 
-### Q: `openclaw gateway` 报连接失败
-
-**检查清单**：
-1. 容器网络是否正常：`curl -s https://api.anthropic.com` 
-2. `.system/.env` 中 API Key 是否正确
-3. 飞书应用是否已发布并审批通过
-4. 事件订阅是否配置了长连接模式
-
-### Q: 飞书消息发出去了但没有回复
-
-**检查清单**：
-1. Gateway 是否在运行：`openclaw gateway status`
-2. 是否需要审批配对：`openclaw pairing list feishu`
-3. 查看 Gateway 日志：`openclaw logs --follow`
-
-### Q: 如何更新 Sisyphus
-
-```bash
-cd open-sisyphus
-git pull
-cd .system
-docker compose up -d --build
-```
+> 这会绕过数据卷。仅建议开发调试，生产环境用数据卷。
 
 ---
 
@@ -477,26 +372,23 @@ docker compose up -d --build
 │  宿主机                                                       │
 │                                                              │
 │  ┌─────────────────────────────────────────────────────────┐ │
-│  │  sisyphus-dev 容器 (network_mode: host)                 │ │
+│  │  sisyphus-dev (network_mode: host)                      │ │
 │  │                                                         │ │
-│  │  /workspace/          ← 与宿主机双向同步                  │ │
-│  │  ├── brain/           ← Sisyphus 能力中枢                │ │
-│  │  ├── config/          ← OpenClaw 配置                    │ │
-│  │  └── ...                                                │ │
+│  │  /workspace/      ← 办公室（数据卷，持久化）              │ │
+│  │  /opt/sisyphus-brain/  ← brain/ 同步源（镜像层）          │ │
 │  │                                                         │ │
-│  │  OpenClaw Gateway ──── 飞书 WebSocket ──── 飞书用户      │ │
+│  │  OpenClaw Gateway ──── WebSocket ──── 飞书用户           │ │
 │  │       │                                                 │ │
 │  │       └── Anthropic API ──── Claude (LLM)               │ │
 │  │                                                         │ │
 │  │  Alphonso ── Playwright MCP ── headless Chrome           │ │
 │  │                                                         │ │
-│  │  Python 3.13 (venv) / Node.js 24 (nvm) / GPU (CUDA)    │ │
+│  │  Python 3.13 / Node.js 24 / GPU (CUDA)                  │ │
 │  └─────────────────────────────────────────────────────────┘ │
 │                                                              │
-│  ┌─────────────────┐                                         │
-│  │ sisyphus-postgres│  ← PostgreSQL 15                       │
-│  │ (port 5432)      │                                        │
-│  └─────────────────┘                                         │
+│  ┌──────────────────┐                                        │
+│  │ sisyphus-postgres │  PostgreSQL 15 (port 5432)            │
+│  └──────────────────┘                                        │
 └──────────────────────────────────────────────────────────────┘
 ```
 
@@ -506,5 +398,5 @@ docker compose up -d --build
 
 - [FEISHU-CHANNEL-SETUP.md](FEISHU-CHANNEL-SETUP.md) — 飞书渠道详细配置
 - [INSTALL-TORCH-CUDA.md](INSTALL-TORCH-CUDA.md) — GPU + PyTorch 安装
-- [SOUL.md](../SOUL.md) — 了解 Sisyphus 的身份和原则
-- [AGENTS.md](../AGENTS.md) — 行为规范与工作准则
+- [SOUL.md](../SOUL.md) — Sisyphus 的身份和原则
+- [AGENTS.md](../AGENTS.md) — 行为规范

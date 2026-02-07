@@ -1,12 +1,19 @@
 # ============================================================================
-# AI 助手运行环境 — 多阶段构建
+# Sisyphus 运行环境 — 多阶段构建
 # Ubuntu 22.04 | Python 3.13 | Node 24 (nvm) | headless Chrome | GPU-ready
 #
-# 策略：
-#   builder  — 系统依赖 + Python + Node + Chrome（重且稳定，很少改动）
-#   runtime  — 业务依赖 + 入口脚本（轻且频繁变化，秒级重建）
+# 隐喻：这个容器是 AI 助手的"办公室"
+#   构建镜像 = 装修办公室（安装工具、布置桌面、放好手册）
+#   数据卷   = 办公室里的文件柜（工作日志、记忆、产出物）
 #
-# 构建上下文为 workspace 根目录（.），Dockerfile 位于 .system/Dockerfile
+# 构建策略：
+#   builder  — 系统工具链（重且稳定，很少改动）
+#   runtime  — 业务依赖 + /workspace 完整目录结构（改动后秒级重建）
+#
+# /workspace 在构建时就创建好完整的目录结构和定义文件。
+# 运行时挂载空数据卷时，Docker 会自动用镜像层填充。
+#
+# 构建上下文为项目根目录（.），Dockerfile 位于 .system/Dockerfile
 # ============================================================================
 
 
@@ -22,7 +29,7 @@ ENV TZ=Asia/Shanghai
 
 # --- 系统依赖（单层合并） ---
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential ca-certificates curl file git gnupg jq less tzdata \
+    build-essential ca-certificates curl file git gnupg jq less rsync tzdata \
     libffi-dev libpq-dev libssl-dev lsb-release openssh-client \
     procps software-properties-common sudo tree unzip vim wget \
     xz-utils zip zlib1g-dev \
@@ -87,7 +94,7 @@ RUN . "$NVM_DIR/nvm.sh" && node -v && npm -v && python3.13 --version \
 
 
 # ╔══════════════════════════════════════════════════════════════════════════╗
-# ║  Stage 2: runtime — 业务层（改动后秒级重建）                             ║
+# ║  Stage 2: runtime — 业务层 + /workspace 办公室布局                      ║
 # ╚══════════════════════════════════════════════════════════════════════════╝
 FROM builder AS runtime
 
@@ -112,12 +119,59 @@ RUN { \
       echo 'alias chrome-headless="google-chrome-stable --headless --no-sandbox --disable-gpu --remote-debugging-port=9222"'; \
     } >> /root/.bashrc
 
-# --- 入口脚本 ---
+# ── /workspace — Sisyphus 的办公室 ─────────────────────────────────────
+# 构建时创建完整目录结构 + 放入定义文件。
+# 运行时挂载空 named volume 时，Docker 自动用镜像层内容初始化。
+# 挂载非空卷则保留已有数据（持久化语义）。
+
+WORKDIR /workspace
+
+# ── 定义文件（身份、规范、配置） ──
+COPY SOUL.md           /workspace/SOUL.md
+COPY AGENTS.md         /workspace/AGENTS.md
+COPY IDENTITY.md       /workspace/IDENTITY.md
+COPY TOOLS.md          /workspace/TOOLS.md
+COPY BOOT.md           /workspace/BOOT.md
+COPY HEARTBEAT.md      /workspace/HEARTBEAT.md
+COPY USER.md           /workspace/USER.md
+COPY .mcp.json         /workspace/.mcp.json
+
+# ── brain/ — 大脑（能力代码） ──
+# 复制到 /workspace（首次空卷初始化）和 /opt/sisyphus-brain（同步源）。
+# 数据卷非空时 /workspace/brain 来自卷，entrypoint 每次启动从同步源覆盖。
+COPY brain/            /workspace/brain/
+COPY brain/            /opt/sisyphus-brain/
+
+# ── config/ — 助手配置 ──
+COPY config/           /workspace/config/
+
+# ── tools/ — 工具箱 ──
+COPY tools/            /workspace/tools/
+
+# ── credentials/ — 凭证库（仅复制 README 和索引，不含实际凭证） ──
+COPY credentials/README.md    /workspace/credentials/README.md
+COPY credentials/_index.md    /workspace/credentials/_index.md
+
+# ── 数据目录（空目录，运行时由 Sisyphus 填充） ──
+RUN mkdir -p \
+    /workspace/memory/notepad/learnings \
+    /workspace/memory/notepad/references \
+    /workspace/memory/notepad/patterns \
+    /workspace/memory/index \
+    /workspace/worklog \
+    /workspace/inbox \
+    /workspace/artifacts/reports \
+    /workspace/artifacts/exports \
+    /workspace/artifacts/snapshots \
+    /workspace/projects \
+    /workspace/docs \
+    /workspace/.workspace/docs \
+    /workspace/.workspace/scripts \
+    /workspace/.workspace/drafts
+
+# ── 入口脚本 ──
 COPY .system/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
-
-# --- 工作目录 ---
-WORKDIR /workspace
 
 ENTRYPOINT ["entrypoint.sh"]
 CMD ["/bin/bash"]
