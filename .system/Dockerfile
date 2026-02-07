@@ -98,7 +98,10 @@ RUN . "$NVM_DIR/nvm.sh" && node -v && npm -v && python3.13 --version \
 # ╚══════════════════════════════════════════════════════════════════════════╝
 FROM builder AS runtime
 
+ARG VERSION=latest
 LABEL maintainer="sisyphus-dev"
+LABEL version="${VERSION}"
+ENV SISYPHUS_VERSION=${VERSION}
 
 # --- Python 业务依赖（改 requirements.txt 才触发） ---
 COPY brain/agents/alphonso/requirements.txt /tmp/alphonso-requirements.txt

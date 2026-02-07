@@ -11,7 +11,8 @@
 #
 # 用法：
 #   cd .system
-#   docker compose up -d --build
+#   docker compose up -d --build                     # 默认 latest
+#   VERSION=1.2.0 docker compose up -d --build       # 指定版本
 #   docker compose exec dev bash
 # ============================================================================
 
@@ -20,7 +21,9 @@ services:
     build:
       context: ..
       dockerfile: .system/Dockerfile
-    image: sisyphus-dev
+      args:
+        - VERSION=${VERSION:-latest}
+    image: sisyphus-dev:${VERSION:-latest}
     container_name: sisyphus-dev
     stdin_open: true
     tty: true
