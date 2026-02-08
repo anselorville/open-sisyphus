@@ -28,16 +28,17 @@ services:
     stdin_open: true
     tty: true
     working_dir: /workspace
-    # ---------- host 网络 ----------
-    network_mode: host
+    # ---------- 桥接网络 + 端口发布（便于 SSH / OpenClaw 从宿主机或远程访问）----------
+    # 使用 host 网络时，Windows 上 10220 在 VM 内，远程 SSH 连不上；改为 bridge 并发布端口。
+    ports:
+      - "10220:10220"   # SSH
+      - "18789:18789"   # OpenClaw Gateway
     volumes:
-      # 宿主机路径（相对 compose 文件）：./workspace_data、./openclaw_data
-      # 不存在时需先创建：mkdir workspace_data openclaw_data postgres_data
       - ./workspace_data:/workspace
       - ./openclaw_data:/root/.openclaw
     environment:
-      # Postgres
-      - POSTGRES_HOST=localhost
+      # Postgres（桥接下用服务名 postgres）
+      - POSTGRES_HOST=postgres
       - POSTGRES_PORT=5432
       - POSTGRES_USER=${POSTGRES_USER:-dev}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-dev}

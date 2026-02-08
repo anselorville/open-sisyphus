@@ -281,7 +281,8 @@ docker compose exec dev bash      # 进入办公室
 docker compose logs -f dev        # 容器日志
 ```
 
-**SSH 远程登录**：在 `.system/.env` 中设置 `ROOT_PASSWORD` 后重启容器，即可从本机或局域网用 `ssh -p 10220 root@<主机 IP>` 登录（端口 10220，用户 root，密码为所设值）。使用 `network_mode: host` 时，端口直接占用宿主机 10220。
+**SSH 远程登录**：在 `.system/.env` 中设置 `ROOT_PASSWORD` 后重启容器，从本机或局域网用 `ssh -p 10220 root@<主机 IP>` 登录（端口 10220，用户 root）。  
+若连不上：① 确认 `.env` 里 `ROOT_PASSWORD` 已填且已重启；② 进容器执行 `ps aux | grep sshd` 确认 sshd 在跑；③ Windows 下须用桥接网络并发布 10220（当前 compose 已如此配置）。
 
 ### 更新 Sisyphus
 
