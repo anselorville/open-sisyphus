@@ -108,6 +108,13 @@ COPY brain/agents/alphonso/requirements.txt /tmp/alphonso-requirements.txt
 RUN "$VENV_DIR/bin/pip" install -r /tmp/alphonso-requirements.txt \
     && rm /tmp/alphonso-requirements.txt
 
+# --- OpenSSH Server（root 密码登录，端口 10220）---
+RUN apt-get update && apt-get install -y --no-install-recommends openssh-server \
+    && rm -rf /var/lib/apt/lists/* \
+    && mkdir -p /run/sshd
+COPY .system/sshd_sisyphus.conf /etc/ssh/sshd_config.d/99-sisyphus.conf
+RUN ssh-keygen -A
+
 # --- shell 配置 ---
 RUN { \
       echo ''; \

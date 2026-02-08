@@ -12,6 +12,13 @@
 # ============================================================================
 set -e
 
+# ── SSH（若设置了 ROOT_PASSWORD 则启用 root 密码登录，端口 10220）────────────
+if [ -n "${ROOT_PASSWORD:-}" ]; then
+    echo "root:${ROOT_PASSWORD}" | chpasswd
+    mkdir -p /run/sshd
+    /usr/sbin/sshd
+fi
+
 # ── 环境加载 ───────────────────────────────────────────────────────────────
 
 export NVM_DIR="$HOME/.nvm"

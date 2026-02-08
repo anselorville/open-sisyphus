@@ -60,6 +60,8 @@ services:
       # Feishu Channel
       - FEISHU_APP_ID=${FEISHU_APP_ID:-}
       - FEISHU_APP_SECRET=${FEISHU_APP_SECRET:-}
+      # SSH：设置后可用 root + 该密码 ssh -p 10220 root@<主机> 登录
+      - ROOT_PASSWORD=${ROOT_PASSWORD:-}
     # ---------- NVIDIA GPU 直通 ----------
     deploy:
       resources:
@@ -71,7 +73,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    command: ["/bin/bash"]
+    # 默认常驻，便于 SSH 与后台服务；交互 shell 用：docker compose exec dev bash
+    command: ["sleep", "infinity"]
 
   postgres:
     image: postgres:15
