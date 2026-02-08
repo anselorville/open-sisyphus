@@ -1,13 +1,14 @@
 {
-  "$schema": "https://docs.openclaw.ai/schema/config.json",
-  "// 说明": "Sisyphus 的 OpenClaw Gateway 配置。API Key / BASE_URL / 默认模型均可通过 .env 覆盖：ANTHROPIC_*、OPENAI_*、LLM_MODEL。对话中可用 /model 切换模型。",
   "agents": {
     "defaults": {
       "workspace": "/workspace",
-      "model": "anthropic/claude-sonnet-4-20250514",
+      "model": {
+        "primary": "anthropic/claude-sonnet-4-20250514",
+        "fallbacks": []
+      },
       "models": {
-        "fast": "anthropic/claude-sonnet-4-20250514",
-        "quality": "anthropic/claude-sonnet-4-20250514"
+        "fast": {},
+        "quality": {}
       },
       "skipBootstrap": true
     }
@@ -18,8 +19,38 @@
         "baseUrl": "https://api.openai.com/v1",
         "api": "openai-completions",
         "models": [
-          { "id": "gpt-4o", "name": "gpt-4o", "reasoning": false, "input": ["text"], "contextWindow": 128000, "maxTokens": 16384, "cost": { "input": 0.005, "output": 0.015, "cacheRead": 0, "cacheWrite": 0 } },
-          { "id": "gpt-4o-mini", "name": "gpt-4o-mini", "reasoning": false, "input": ["text"], "contextWindow": 128000, "maxTokens": 16384, "cost": { "input": 0.00015, "output": 0.0006, "cacheRead": 0, "cacheWrite": 0 } }
+          {
+            "id": "gpt-4o",
+            "name": "gpt-4o",
+            "reasoning": false,
+            "input": [
+              "text"
+            ],
+            "contextWindow": 128000,
+            "maxTokens": 16384,
+            "cost": {
+              "input": 0.005,
+              "output": 0.015,
+              "cacheRead": 0,
+              "cacheWrite": 0
+            }
+          },
+          {
+            "id": "gpt-4o-mini",
+            "name": "gpt-4o-mini",
+            "reasoning": false,
+            "input": [
+              "text"
+            ],
+            "contextWindow": 128000,
+            "maxTokens": 16384,
+            "cost": {
+              "input": 0.00015,
+              "output": 0.0006,
+              "cacheRead": 0,
+              "cacheWrite": 0
+            }
+          }
         ]
       }
     }
@@ -32,17 +63,47 @@
       "streaming": true,
       "blockStreaming": true,
       "textChunkLimit": 2000,
-      "mediaMaxMb": 30
+      "mediaMaxMb": 30,
+      "accounts": {
+        "main": {
+          "appId": "",
+          "appSecret": "",
+          "botName": "Sisyphus"
+        }
+      }
     }
   },
   "gateway": {
-    "bind": "0.0.0.0",
-    "port": 18789
+    "mode": "local",
+    "port": 18789,
+    "bind": "loopback",
+    "auth": {
+      "mode": "token",
+      "token": "cdd98c257ec416148d6b61d5dbe4eedb27ec17b19e5909ce"
+    }
   },
   "tools": {
     "exec": {
-      "enabled": true,
-      "applyPatch": true
+      "applyPatch": {
+        "enabled": true
+      }
     }
+  },
+  "plugins": {
+    "entries": {
+      "feishu": {
+        "enabled": true
+      }
+    }
+  },
+  "wizard": {
+    "lastRunAt": "2026-02-08T13:19:51.497Z",
+    "lastRunVersion": "2026.2.6-3",
+    "lastRunCommand": "doctor",
+    "lastRunMode": "local"
+  },
+  "meta": {
+    "lastTouchedVersion": "2026.2.6-3",
+    "lastTouchedAt": "2026-02-08T13:19:51.502Z"
   }
 }

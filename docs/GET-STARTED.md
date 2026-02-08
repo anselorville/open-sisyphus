@@ -233,11 +233,17 @@ docker compose exec dev bash
 
 #### A.3 启动 Gateway
 
+**容器内没有 systemd**，Gateway 必须在前台或后台手动跑，不能当系统服务：
+
 ```bash
+# 前台运行（占住当前终端，Ctrl+C 会停）
 openclaw gateway
+
+# 或后台运行（另开一个 exec 会话做别的事）
+openclaw gateway &
 ```
 
-看到以下日志即成功：
+配置里使用 `gateway.mode: "local"`、`gateway.bind: "loopback"`（OpenClaw 2026 合法值；`0.0.0.0` 会报 Invalid input）。**loopback 仅容器内可连**，飞书长连接是容器主动连出，不受影响；若要从宿主机打开 Dashboard（如 `http://localhost:18789`），需查 OpenClaw 文档是否有绑定到所有接口的选项或环境变量。看到类似日志即成功：
 
 ```
 [Gateway] Listening on 0.0.0.0:18789

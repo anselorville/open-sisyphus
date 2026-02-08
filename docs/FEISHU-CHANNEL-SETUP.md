@@ -166,11 +166,15 @@ docker compose exec dev bash
 
 ### 2. 启动 OpenClaw Gateway
 
+在 **Docker 容器内**没有 systemd，需在前台或后台手动启动（不能当服务）：
+
 ```bash
-openclaw gateway
+openclaw gateway        # 前台运行，占住终端
+# 或
+openclaw gateway &      # 后台运行
 ```
 
-首次运行会检测到飞书配置并自动连接。
+确保 `config/openclaw.json` 里 `gateway.bind` 为 `"0.0.0.0"`，宿主机才能通过端口映射访问。首次运行会检测到飞书配置并自动连接。
 
 ### 3. 发送测试消息
 
@@ -245,8 +249,9 @@ openclaw pairing approve feishu <CODE>
 # 查看状态
 openclaw gateway status
 
-# 后台启动（推荐生产使用）
-openclaw gateway &
+# 容器内：无 systemd，只能手动前台或后台启动
+openclaw gateway        # 前台
+openclaw gateway &      # 后台
 
 # 查看日志
 openclaw logs --follow
