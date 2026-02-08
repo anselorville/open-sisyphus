@@ -233,17 +233,12 @@ docker compose exec dev bash
 
 #### A.3 启动 Gateway
 
-**容器内没有 systemd**，Gateway 必须在前台或后台手动跑，不能当系统服务：
+**容器默认命令已是 `openclaw gateway`**：`docker compose up -d` 后，entrypoint 会完成环境与凭证写入，再以前台方式启动 Gateway，无需再进容器手动执行。
 
-```bash
-# 前台运行（占住当前终端，Ctrl+C 会停）
-openclaw gateway
+- 需要进容器做其他事（如 `openclaw pairing`、调试）：`docker compose exec dev bash`
+- 若希望「常驻容器 + 手动起 Gateway」，可覆盖命令：`docker compose run --rm -d dev sleep infinity`，再 `exec` 进去执行 `openclaw gateway`
 
-# 或后台运行（另开一个 exec 会话做别的事）
-openclaw gateway &
-```
-
-配置里使用 `gateway.mode: "local"`、`gateway.bind: "loopback"`（OpenClaw 2026 合法值；`0.0.0.0` 会报 Invalid input）。**loopback 仅容器内可连**，飞书长连接是容器主动连出，不受影响；若要从宿主机打开 Dashboard（如 `http://localhost:18789`），需查 OpenClaw 文档是否有绑定到所有接口的选项或环境变量。看到类似日志即成功：
+配置里使用 `gateway.mode: "local"`、`gateway.bind: "loopback"`。飞书长连接是容器主动连出，不受影响。看到类似日志即成功：
 
 ```
 [Gateway] Listening on 0.0.0.0:18789
@@ -353,9 +348,8 @@ docker compose build --build-arg PIP_INDEX_URL=https://mirrors.aliyun.com/pypi/s
 
 **`openclaw gateway` 连接失败** →
 1. `curl -s https://api.anthropic.com`（网络）
-2. 检查 `.env` 中 API Key
-3. 飞书应用是否已发布审批
-4. 事件订阅是否长连接模式
+2. OpenClaw 用 **provider** 管理模型与认证（[Model Providers](https://docs.openclaw.ai/providers)）。entrypoint 会把 compose 里的 API 相关变量写入 `~/.openclaw/.env`，部分路径会用到；若仍报 “No API key found for provider anthropic”，需用 **provider 流程** 登记 key：在容器内执行一次 `openclaw onboard --anthropic-api-key "$ANTHROPIC_API_KEY"`，或 `openclaw models auth paste-token --provider anthropic` 按提示粘贴
+3. 飞书应用是否已发布审批、事件订阅是否长连接模式
 
 **飞书不回复** →
 1. `openclaw gateway status`

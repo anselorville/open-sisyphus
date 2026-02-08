@@ -166,15 +166,7 @@ docker compose exec dev bash
 
 ### 2. 启动 OpenClaw Gateway
 
-在 **Docker 容器内**没有 systemd，需在前台或后台手动启动（不能当服务）：
-
-```bash
-openclaw gateway        # 前台运行，占住终端
-# 或
-openclaw gateway &      # 后台运行
-```
-
-确保 `config/openclaw.json` 里 `gateway.bind` 为 `"0.0.0.0"`，宿主机才能通过端口映射访问。首次运行会检测到飞书配置并自动连接。
+**容器默认会以前台方式自动启动 Gateway**（compose 的 `command` 为 `openclaw gateway`）。执行 `docker compose up -d` 后无需再进容器手动运行；如需进容器做配对等，用 `docker compose exec dev bash`。首次运行会检测到飞书配置并自动连接。
 
 ### 3. 发送测试消息
 
