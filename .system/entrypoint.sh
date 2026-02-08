@@ -8,9 +8,7 @@
 #   3. 链接 OpenClaw 配置
 #   4. 执行传入的命令（默认 /bin/bash）
 #
-# /workspace 的目录结构和定义文件已在构建时创建好（见 Dockerfile）。
-# Docker named volume 首次挂载空卷时会自动用镜像层填充。
-# 此脚本不负责目录初始化，只负责每次启动时的代码同步。
+# /workspace 可为 bind mount 的宿主机目录；若为空则从 skeleton 初始化。
 # ============================================================================
 set -e
 
@@ -20,6 +18,11 @@ export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
 
 source /opt/venv/bin/activate
+
+# ── 空 workspace 初始化（bind mount 空目录时）────────────────────────────────
+if [ ! -f /workspace/SOUL.md ] && [ -d /opt/sisyphus-workspace-skeleton ]; then
+    cp -a /opt/sisyphus-workspace-skeleton/. /workspace/
+fi
 
 # ── brain/ 同步 ────────────────────────────────────────────────────────────
 # 每次启动从镜像层同步最新 brain/ 到数据卷。

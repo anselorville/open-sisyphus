@@ -172,6 +172,9 @@ RUN mkdir -p \
     /workspace/.workspace/scripts \
     /workspace/.workspace/drafts
 
+# 供 bind mount 空目录时初始化（entrypoint 会从此复制）
+RUN cp -a /workspace /opt/sisyphus-workspace-skeleton
+
 # ── 入口脚本 ──
 COPY .system/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh

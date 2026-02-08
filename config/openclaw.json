@@ -1,8 +1,6 @@
 {
   "$schema": "https://docs.openclaw.ai/schema/config.json",
-
-  "// 说明": "Sisyphus 的 OpenClaw Gateway 配置。飞书凭证通过环境变量注入，不要写在这里。",
-
+  "// 说明": "Sisyphus 的 OpenClaw Gateway 配置。API Key / BASE_URL / 默认模型均可通过 .env 覆盖：ANTHROPIC_*、OPENAI_*、LLM_MODEL。对话中可用 /model 切换模型。",
   "agents": {
     "defaults": {
       "workspace": "/workspace",
@@ -14,7 +12,18 @@
       "skipBootstrap": true
     }
   },
-
+  "models": {
+    "providers": {
+      "openai": {
+        "baseUrl": "https://api.openai.com/v1",
+        "api": "openai-completions",
+        "models": [
+          { "id": "gpt-4o", "name": "gpt-4o", "reasoning": false, "input": ["text"], "contextWindow": 128000, "maxTokens": 16384, "cost": { "input": 0.005, "output": 0.015, "cacheRead": 0, "cacheWrite": 0 } },
+          { "id": "gpt-4o-mini", "name": "gpt-4o-mini", "reasoning": false, "input": ["text"], "contextWindow": 128000, "maxTokens": 16384, "cost": { "input": 0.00015, "output": 0.0006, "cacheRead": 0, "cacheWrite": 0 } }
+        ]
+      }
+    }
+  },
   "channels": {
     "feishu": {
       "enabled": true,
@@ -26,12 +35,10 @@
       "mediaMaxMb": 30
     }
   },
-
   "gateway": {
     "bind": "0.0.0.0",
     "port": 18789
   },
-
   "tools": {
     "exec": {
       "enabled": true,

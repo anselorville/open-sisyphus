@@ -106,7 +106,12 @@ FEISHU_APP_SECRET=your_secret
 OPENCLAW_GATEWAY_TOKEN=
 ```
 
-**最低启动要求**：只需要 `ANTHROPIC_API_KEY`。
+**最低启动要求**：只需填 `ANTHROPIC_API_KEY` 或 `OPENAI_API_KEY` 其一。
+
+**运行时如何选模型与 BASE URL**：
+- **Anthropic**：`.env` 中可设 `ANTHROPIC_BASE_URL`（自定义接口）、`ANTHROPIC_MODEL`（如 `claude-sonnet-4-20250514`）。
+- **OpenAI / 兼容**：可设 `OPENAI_BASE_URL`、`OPENAI_MODEL`（如 `gpt-4o`）；或改 `config/openclaw.json` 里 `models.providers.openai.baseUrl` 与 `agents.defaults.model`。
+- **对话中**：在飞书里发 `/model` 可查看或切换当前模型。
 
 ---
 
@@ -294,11 +299,8 @@ docker compose up -d --build     # 重建镜像
 # docker cp
 docker cp sisyphus-dev:/workspace ./workspace-backup
 
-# volume 备份
-docker run --rm \
-  -v sisyphus_workspace_data:/data \
-  -v $(pwd):/backup \
-  alpine tar czf /backup/workspace.tar.gz -C /data .
+# 宿主机目录备份（workspace_data 在 .system/ 下）
+cd .system && tar czf ../workspace-backup.tar.gz workspace_data
 ```
 
 ---
