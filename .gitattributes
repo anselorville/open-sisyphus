@@ -1,0 +1,3 @@
+# 确保 shell 脚本在任何平台上都使用 LF 换行符
+*.sh text eol=lf
+entrypoint.sh text eol=lf
