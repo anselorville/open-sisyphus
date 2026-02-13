@@ -1,10 +1,2 @@
 credentials
 .env
-
-# 容器数据目录（bind mount 目标，内容不提交）
-.system/workspace_data/*
-!.system/workspace_data/.gitkeep
-.system/openclaw_data/*
-!.system/openclaw_data/.gitkeep
-.system/postgres_data/*
-!.system/postgres_data/.gitkeep

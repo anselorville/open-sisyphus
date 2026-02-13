@@ -83,9 +83,13 @@ RUN curl -fsSL https://dl.google.com/linux/linux_signing_key.pub \
        google-chrome-stable fonts-liberation fonts-noto-cjk \
     && rm -rf /var/lib/apt/lists/*
 
-# --- 全局 npm 包（pnpm + @playwright/mcp + openclaw + feishu 插件） ---
+# --- 全局 npm 包（pnpm + playwright + @playwright/mcp + openclaw + feishu 插件） ---
+# playwright       — OpenClaw 内置 browser 工具的核心依赖（navigate/act/snapshot/screenshot）
+# @playwright/mcp  — Playwright MCP Server（.mcp.json 的备选浏览器控制方式）
+# PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 — 跳过 Chromium 下载，使用上面已安装的系统 Chrome
+ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
 RUN . "$NVM_DIR/nvm.sh" \
-    && npm install -g pnpm @playwright/mcp openclaw \
+    && npm install -g pnpm playwright @playwright/mcp openclaw \
     && openclaw plugins install @openclaw/feishu
 
 # 验证
@@ -144,6 +148,7 @@ COPY TOOLS.md          /workspace/TOOLS.md
 COPY BOOT.md           /workspace/BOOT.md
 COPY HEARTBEAT.md      /workspace/HEARTBEAT.md
 COPY USER.md           /workspace/USER.md
+COPY MEMORY.md         /workspace/MEMORY.md
 COPY .mcp.json         /workspace/.mcp.json
 
 # ── brain/ — 大脑（能力代码） ──

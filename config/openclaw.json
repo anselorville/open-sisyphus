@@ -3,57 +3,30 @@
     "defaults": {
       "workspace": "/workspace",
       "model": {
-        "primary": "anthropic/claude-sonnet-4-20250514",
-        "fallbacks": []
+        "primary": "glm/glm-4.7",
+        "fallbacks": ["ark/deepseek-v3.2"]
       },
       "models": {
-        "fast": {},
-        "quality": {}
+        "glm/glm-4.7": { "alias": "glm" },
+        "ark/deepseek-v3.2": { "alias": "ds" }
       },
-      "skipBootstrap": true
+      "skipBootstrap": false,
+      "maxConcurrent": 4,
+      "subagents": {
+        "maxConcurrent": 8
+      },
+      "memorySearch": {
+        "provider": "openai",
+        "model": "embedding-3",
+        "sources": ["memory"],
+        "remote": {
+          "baseUrl": "https://open.bigmodel.cn/api/paas/v4/"
+        }
+      }
     }
   },
   "models": {
-    "providers": {
-      "openai": {
-        "baseUrl": "https://api.openai.com/v1",
-        "api": "openai-completions",
-        "models": [
-          {
-            "id": "gpt-4o",
-            "name": "gpt-4o",
-            "reasoning": false,
-            "input": [
-              "text"
-            ],
-            "contextWindow": 128000,
-            "maxTokens": 16384,
-            "cost": {
-              "input": 0.005,
-              "output": 0.015,
-              "cacheRead": 0,
-              "cacheWrite": 0
-            }
-          },
-          {
-            "id": "gpt-4o-mini",
-            "name": "gpt-4o-mini",
-            "reasoning": false,
-            "input": [
-              "text"
-            ],
-            "contextWindow": 128000,
-            "maxTokens": 16384,
-            "cost": {
-              "input": 0.00015,
-              "output": 0.0006,
-              "cacheRead": 0,
-              "cacheWrite": 0
-            }
-          }
-        ]
-      }
-    }
+    "providers": {}
   },
   "channels": {
     "feishu": {
@@ -76,34 +49,50 @@
   "gateway": {
     "mode": "local",
     "port": 18789,
-    "bind": "loopback",
+    "bind": "lan",
     "auth": {
-      "mode": "token",
-      "token": "cdd98c257ec416148d6b61d5dbe4eedb27ec17b19e5909ce"
+      "mode": "token"
+    },
+    "tailscale": {
+      "mode": "off",
+      "resetOnExit": false
     }
   },
   "tools": {
+    "profile": "full",
     "exec": {
       "applyPatch": {
         "enabled": true
       }
     }
   },
+  "messages": {
+    "ackReactionScope": "group-mentions"
+  },
+  "commands": {
+    "native": "auto",
+    "nativeSkills": "auto"
+  },
   "plugins": {
     "entries": {
       "feishu": {
         "enabled": true
+      },
+      "qwen-portal-auth": {
+        "enabled": true
       }
     }
   },
-  "wizard": {
-    "lastRunAt": "2026-02-08T13:19:51.497Z",
-    "lastRunVersion": "2026.2.6-3",
-    "lastRunCommand": "doctor",
-    "lastRunMode": "local"
+  "browser": {
+    "enabled": true,
+    "headless": true,
+    "noSandbox": true,
+    "defaultProfile": "openclaw",
+    "executablePath": "/usr/bin/google-chrome-stable"
   },
-  "meta": {
-    "lastTouchedVersion": "2026.2.6-3",
-    "lastTouchedAt": "2026-02-08T13:19:51.502Z"
+  "skills": {
+    "install": {
+      "nodeManager": "npm"
+    }
   }
 }
