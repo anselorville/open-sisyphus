@@ -54,8 +54,9 @@ services:
       - NVIDIA_DRIVER_CAPABILITIES=compute,utility,graphics
       # Sisyphus
       - PYTHONPATH=/workspace
-      # OpenClaw Gateway
+      # OpenClaw Gateway（容器内 CLI 用 127.0.0.1 连接，避免 pairing required）
       - OPENCLAW_GATEWAY_TOKEN=${OPENCLAW_GATEWAY_TOKEN:-}
+      - OPENCLAW_GATEWAY_WS=ws://127.0.0.1:18789
       # LLM 默认模型（provider_name/model_id）
       - LLM_PRIMARY_MODEL=${LLM_PRIMARY_MODEL:-}
       # Feishu Channel

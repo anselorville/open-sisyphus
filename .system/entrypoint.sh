@@ -50,10 +50,9 @@ OPENCLAW_HOME="$HOME/.openclaw"
 WORKSPACE_CONFIG="/workspace/config/openclaw.json"
 mkdir -p "$OPENCLAW_HOME"
 
+# 每次启动都从 workspace 同步最新源配置（后续 jq 会在副本上做运行时注入）
 if [ -f "$WORKSPACE_CONFIG" ]; then
-    if [ ! -f "$OPENCLAW_HOME/openclaw.json" ] || [ -L "$OPENCLAW_HOME/openclaw.json" ]; then
-        ln -sf "$WORKSPACE_CONFIG" "$OPENCLAW_HOME/openclaw.json"
-    fi
+    ln -sf "$WORKSPACE_CONFIG" "$OPENCLAW_HOME/openclaw.json"
 fi
 
 # ── 写 OpenClaw .env（保留 Gateway Token 和飞书凭证）─────────────────────────
@@ -87,9 +86,19 @@ fi
 # 注入 Gateway Token（如果有）
 if [ -n "${OPENCLAW_GATEWAY_TOKEN:-}" ] && [ -f "$_cfg" ]; then
     jq --arg t "$OPENCLAW_GATEWAY_TOKEN" '
-      .gateway.auth //= {};
-      .gateway.auth.mode = "token";
+      .gateway.auth = (.gateway.auth // {}) |
+      .gateway.auth.mode = "token" |
       .gateway.auth.token = $t
+    ' "$_cfg" > "$_cfg.tmp" && mv "$_cfg.tmp" "$_cfg"
+fi
+
+# 容器内 CLI 固定连 127.0.0.1，避免 bind:lan 时走 LAN IP 导致 pairing required
+# gateway.mode: remote + gateway.remote.url 仅影响 CLI 连接方式，Gateway 进程仍按 port/bind 启动
+if [ -f "$_cfg" ]; then
+    _tok="${OPENCLAW_GATEWAY_TOKEN:-}"
+    jq --arg url "ws://127.0.0.1:18789" --arg t "$_tok" '
+      .gateway.mode = "remote" |
+      .gateway.remote = ((.gateway.remote // {}) | .url = $url | if $t != "" then .token = $t else . end)
     ' "$_cfg" > "$_cfg.tmp" && mv "$_cfg.tmp" "$_cfg"
 fi
 
@@ -173,12 +182,17 @@ if [ -n "${LLM_PRIMARY_MODEL:-}" ] && [ -f "$_cfg" ]; then
     echo "[entrypoint] ✓ 默认模型设置为 $LLM_PRIMARY_MODEL"
 fi
 
-# 注入 Embedding API Key（用于 memory search 向量化）
+# 注入 Embedding 配置（用于 memory search 向量化）
+# EMBEDDING_API_KEY 必填，EMBEDDING_BASE_URL 可选（有默认值）
 if [ -n "${EMBEDDING_API_KEY:-}" ] && [ -f "$_cfg" ]; then
-    jq --arg key "$EMBEDDING_API_KEY" '
-      .agents.defaults.memorySearch.remote.apiKey = $key
+    _emb_url="${EMBEDDING_BASE_URL:-https://open.bigmodel.cn/api/paas/v4/}"
+    jq --arg key "$EMBEDDING_API_KEY" \
+       --arg url "$_emb_url" '
+      .agents.defaults.memorySearch.remote = (.agents.defaults.memorySearch.remote // {}) |
+      .agents.defaults.memorySearch.remote.apiKey = $key |
+      .agents.defaults.memorySearch.remote.baseUrl = $url
     ' "$_cfg" > "$_cfg.tmp" && mv "$_cfg.tmp" "$_cfg"
-    echo "[entrypoint] ✓ Embedding API Key 已注入 memorySearch"
+    echo "[entrypoint] ✓ Embedding 已注入 memorySearch（baseUrl: $_emb_url）"
 fi
 
 # ── 执行命令 ───────────────────────────────────────────────────────────────
