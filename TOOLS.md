@@ -20,7 +20,13 @@
 | **browser** | 操控 headless Chrome（navigate/snapshot/act/screenshot） |
 | **web_fetch** | HTTP 获取 URL 内容（HTML→Markdown） |
 
-**搜索策略**：`browser` 导航到搜索引擎 → `snapshot` 获取结构 → `act` 操作元素。已知 URL 优先 `web_fetch`。
+> **重要：你没有 `web_search` 工具，但你有完整的浏览器。**
+> 当用户要求搜索时，**必须**使用 `browser` 工具打开搜索引擎执行搜索，流程：
+> 1. `browser` → `navigate` 到 `https://www.google.com/search?q=<编码后的关键词>`
+> 2. `browser` → `snapshot` 获取搜索结果页结构
+> 3. 根据需要 `act`（点击链接）或 `web_fetch`（抓取目标页面内容）
+>
+> 已知 URL 直接用 `web_fetch`。不要因为没有 `web_search` 就拒绝搜索请求。
 
 ### 记忆
 
