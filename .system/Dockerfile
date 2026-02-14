@@ -160,6 +160,11 @@ COPY brain/            /opt/sisyphus-brain/
 # ── config/ — 助手配置 ──
 COPY config/           /workspace/config/
 
+# ── OpenClaw 配置注入脚本（entrypoint 调用，替代 jq）──
+RUN mkdir -p /usr/local/lib/sisyphus
+COPY .system/scripts/inject_openclaw_config.py /usr/local/lib/sisyphus/
+RUN chmod +x /usr/local/lib/sisyphus/inject_openclaw_config.py
+
 # ── tools/ — 工具箱 ──
 COPY tools/            /workspace/tools/
 
@@ -183,6 +188,11 @@ RUN mkdir -p \
     /workspace/.workspace/docs \
     /workspace/.workspace/scripts \
     /workspace/.workspace/drafts
+
+# inbox 占位文件（避免 tools 读 backlog.md 等 ENOENT；entrypoint 也会按需创建）
+RUN printf '# Backlog — 待办任务\n\n*（占位，可编辑）\n' > /workspace/inbox/backlog.md \
+ && printf '# Blocked — 被阻塞\n\n*（占位，可编辑）\n' > /workspace/inbox/blocked.md \
+ && printf '# Ideas — 灵感想法\n\n*（占位，可编辑）\n' > /workspace/inbox/ideas.md
 
 # 供 bind mount 空目录时初始化（entrypoint 会从此复制）
 RUN cp -a /workspace /opt/sisyphus-workspace-skeleton

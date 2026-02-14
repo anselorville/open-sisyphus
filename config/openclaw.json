@@ -30,7 +30,7 @@
     "feishu": {
       "enabled": true,
       "dmPolicy": "pairing",
-      "groupPolicy": "open",
+      "groupPolicy": "allowlist",
       "streaming": true,
       "blockStreaming": true,
       "textChunkLimit": 2000,
