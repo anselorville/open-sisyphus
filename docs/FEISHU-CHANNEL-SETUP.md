@@ -102,23 +102,20 @@ Sisyphus → OpenClaw Gateway → 飞书平台 → 飞书用户
 
 ## 第二步：配置 Sisyphus
 
-### 方式 A：环境变量（推荐）
+### 方式 A：运行时配置文件（推荐）
 
-编辑 `.system/.env` 文件：
+编辑 **config/openclaw-runtime.json**（若不存在则从 `config/openclaw-runtime.example.json` 复制），填写：
 
-```bash
-# 飞书应用凭证
-FEISHU_APP_ID=cli_xxx
-FEISHU_APP_SECRET=your_app_secret_here
+```json
+"channels": {
+  "feishu": {
+    "appId": "cli_xxx",
+    "appSecret": "your_app_secret_here"
+  }
+}
 ```
 
-然后重启容器：
-
-```bash
-cd .system
-docker compose down dev
-docker compose up -d dev
-```
+然后执行 `reapply_openclaw_config`（热加载）或重启容器。
 
 ### 方式 B：OpenClaw 向导
 
@@ -130,9 +127,9 @@ openclaw channels add
 
 选择 **Feishu**，按提示输入 App ID 和 App Secret。
 
-### 方式 C：直接编辑配置
+### 方式 C：直接编辑 openclaw 模板
 
-编辑 `/workspace/config/openclaw.json`，在 `channels.feishu` 中添加：
+编辑 `config/openclaw.json` 的 `channels.feishu`（仅当未使用 openclaw-runtime.json 注入时生效）；通常推荐用方式 A 维护 `config/openclaw-runtime.json`。示例：
 
 ```json
 {
@@ -267,7 +264,7 @@ openclaw gateway restart
 ### App Secret 泄露
 
 1. 在飞书开放平台重置 App Secret
-2. 更新 `.system/.env` 中的 `FEISHU_APP_SECRET`
+2. 更新 `config/openclaw-runtime.json` 中 `channels.feishu.appSecret`
 3. 重启容器
 
 ### 消息发送失败

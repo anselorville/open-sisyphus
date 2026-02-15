@@ -50,28 +50,14 @@ for _f in backlog.md blocked.md ideas.md; do
     [ -f "/workspace/inbox/$_f" ] || printf '# %s\n\n*（占位，可编辑）\n' "${_f%.md}" > "/workspace/inbox/$_f"
 done
 
-# ── OpenClaw 配置与凭证 ─────────────────────────────────────────────────────
+# ── OpenClaw 配置：模板 + 运行时配置注入 ─────────────────────────────────────
 
 OPENCLAW_HOME="$HOME/.openclaw"
 WORKSPACE_CONFIG="/workspace/config/openclaw.json"
+RUNTIME_CONFIG="/workspace/config/openclaw-runtime.json"
 mkdir -p "$OPENCLAW_HOME"
 
-# 写 .env（Gateway Token、飞书、LLM provider API keys 等供 daemon 读取）
-OPENCLAW_ENV="$OPENCLAW_HOME/.env"
-: > "$OPENCLAW_ENV"
-for _var in OPENCLAW_GATEWAY_TOKEN FEISHU_APP_ID FEISHU_APP_SECRET; do
-    _val="${!_var:-}"
-    [ -n "$_val" ] && printf '%s=%s\n' "$_var" "$_val" >> "$OPENCLAW_ENV"
-done
-# LLM_PROVIDER_*_API_KEY（与 inject 脚本一致，供 OpenClaw 从 .env 读取）
-while IFS='=' read -r _key _; do
-    if [[ "$_key" =~ ^LLM_PROVIDER_([A-Za-z0-9]+)_API_KEY$ ]]; then
-        _val="${!_key:-}"
-        [ -n "$_val" ] && printf '%s=%s\n' "$_key" "$_val" >> "$OPENCLAW_ENV"
-    fi
-done < <(env)
-
-# 从 workspace 取配置：先链接，再复制为实体文件后由 Python 脚本注入（不写回仓库）
+# 从 workspace 取模板，复制为实体文件后按 openclaw-runtime.json 注入（不写回仓库）
 if [ -f "$WORKSPACE_CONFIG" ]; then
     ln -sf "$WORKSPACE_CONFIG" "$OPENCLAW_HOME/openclaw.json"
 fi
@@ -82,9 +68,9 @@ if [ -L "$_cfg" ]; then
     cp -f "$_src" "$_cfg"
 fi
 
-# 用 Python 脚本注入环境变量到 openclaw.json（替代多处 jq，减少写错风险）
+# 读取 openclaw-runtime.json 注入 Gateway/飞书/模型/Embedding，再启动 gateway
 if [ -f "$_cfg" ]; then
-    python3 /usr/local/lib/sisyphus/inject_openclaw_config.py "$_cfg"
+    python3 /usr/local/lib/sisyphus/inject_openclaw_config.py --runtime "$RUNTIME_CONFIG" "$_cfg"
 fi
 
 # ── OpenClaw 安全：状态目录与配置仅当前用户可访问 ─────────────────────────────

@@ -54,14 +54,7 @@ services:
       - NVIDIA_DRIVER_CAPABILITIES=compute,utility,graphics
       # Sisyphus
       - PYTHONPATH=/workspace
-      # OpenClaw Gateway（容器内 CLI 用 127.0.0.1 连接，避免 pairing required）
-      - OPENCLAW_GATEWAY_TOKEN=${OPENCLAW_GATEWAY_TOKEN:-}
-      - OPENCLAW_GATEWAY_WS=ws://127.0.0.1:18789
-      # LLM 默认模型（provider_name/model_id）
-      - LLM_PRIMARY_MODEL=${LLM_PRIMARY_MODEL:-}
-      # Feishu Channel
-      - FEISHU_APP_ID=${FEISHU_APP_ID:-}
-      - FEISHU_APP_SECRET=${FEISHU_APP_SECRET:-}
+      # OpenClaw 模型/飞书/Gateway token 等均在 config/openclaw-runtime.json 中配置
       # SSH：设置后可用 root + 该密码 ssh -p 10220 root@<主机> 登录
       - ROOT_PASSWORD=${ROOT_PASSWORD:-}
     # ---------- NVIDIA GPU 直通 ----------
@@ -75,7 +68,7 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    # 容器启动时以前台方式运行 OpenClaw Gateway（entrypoint 会先完成环境与 .env 写入再 exec）
+    # 容器启动时以前台运行 OpenClaw Gateway（entrypoint 先读 openclaw-runtime.json 注入再 exec）
     command: ["openclaw", "gateway"]
 
   postgres:

@@ -1,64 +1,19 @@
-# LLM Provider 配置指南
+# LLM 与 OpenClaw 配置指南
 
-本文档说明如何为 Sisyphus 配置 LLM（大语言模型）提供商。
+模型、Embedding、飞书、Gateway token 等**统一在一个配置文件**中完成，容器启动时读取该文件并注入 `openclaw.json`，不再使用环境变量。
 
 ---
 
 ## 快速上手
 
-在 `.system/.env` 中配置你的提供商：
+1. 复制示例并填写（该文件含密钥，已加入 .gitignore）：
 
 ```bash
-# 格式：LLM_PROVIDER_{NAME}_BASE_URL / _API_KEY / _MODELS
-# NAME = 自定义 provider 名称（大写字母+数字，将转为小写作为 provider id）
-# MODELS = 逗号分隔的模型 ID 列表
-
-LLM_PROVIDER_ARK_BASE_URL=https://ark.cn-beijing.volces.com/api/coding
-LLM_PROVIDER_ARK_API_KEY=your-api-key-here
-LLM_PROVIDER_ARK_MODELS=deepseek-v3.2, deepseek-r1
-
-LLM_PROVIDER_GLM_BASE_URL=https://open.bigmodel.cn/api/paas/v4
-LLM_PROVIDER_GLM_API_KEY=your-api-key-here
-LLM_PROVIDER_GLM_MODELS=glm-4.7
-
-# 全局默认模型（格式：provider_name/model_id）
-LLM_PRIMARY_MODEL=glm/glm-4.7
+cp config/openclaw-runtime.example.json config/openclaw-runtime.json
+# 编辑 config/openclaw-runtime.json，填写 gateway.token、channels.feishu、models.providers、embedding
 ```
 
-容器启动时，`entrypoint.sh` 会自动：
-1. 提取所有 `LLM_PROVIDER_{NAME}_*` 环境变量
-2. 解析模型列表（逗号分隔，自动去除空格）
-3. 注入到 `openclaw.json` 的 `models.providers` 中
-4. 用 `LLM_PRIMARY_MODEL` 覆盖默认模型
-
----
-
-## 变量说明
-
-| 变量 | 必填 | 说明 |
-|------|------|------|
-| `LLM_PROVIDER_{NAME}_BASE_URL` | ✅ | OpenAI-compatible API 地址 |
-| `LLM_PROVIDER_{NAME}_API_KEY` | ✅ | 认证密钥 |
-| `LLM_PROVIDER_{NAME}_MODELS` | 建议 | 逗号分隔的模型 ID 列表 |
-| `LLM_PRIMARY_MODEL` | 建议 | 全局默认模型，格式 `provider/model_id` |
-
-- `{NAME}` 是你自定义的标识符（大写字母+数字），会转为小写作为 OpenClaw provider id
-- 模型列表支持空格：`model-a, model-b, model-c` 会被 strip 为 `["model-a", "model-b", "model-c"]`
-- 所有 provider 都按 `openai-completions` API 协议配置（即 OpenAI-compatible）
-
----
-
-## 添加新 Provider
-
-只需在 `.env` 中增加三行：
-
-```bash
-LLM_PROVIDER_DEEPSEEK_BASE_URL=https://api.deepseek.com/v1
-LLM_PROVIDER_DEEPSEEK_API_KEY=sk-xxx
-LLM_PROVIDER_DEEPSEEK_MODELS=deepseek-chat, deepseek-reasoner
-```
-
-重启容器即可：
+2. 启动容器：entrypoint 会读取 `config/openclaw-runtime.json` 并注入，再启动 OpenClaw Gateway。
 
 ```bash
 cd .system && docker compose up -d
@@ -66,86 +21,117 @@ cd .system && docker compose up -d
 
 ---
 
-## 引用模型
+## 配置文件结构（openclaw-runtime.json）
 
-在对话中或配置中引用模型，使用 `provider_name/model_id` 格式：
+| 字段 | 说明 |
+|------|------|
+| `gateway.token` | Gateway 认证 token（可选，建议生产环境设置） |
+| `channels.feishu.appId` / `appSecret` | 飞书应用凭证 |
+| `models.primary` | 默认模型，格式 `provider_id/model_id` |
+| `models.providers` | 各 provider 的 baseUrl、apiKey、models 列表 |
+| `embedding` | Memory search 向量化：远程（见下）或 **本地**（`provider: "local"` + `local.modelPath`） |
 
-```
-ark/deepseek-v3.2
-glm/glm-4.7
-deepseek/deepseek-chat
-```
+示例见 `config/openclaw-runtime.example.json`。所有 key 均可按需省略，未填写的部分不会覆盖模板中的默认值。
 
-切换默认模型（容器内）：
+---
+
+## 热切换（无需重启容器）
+
+修改 `config/openclaw-runtime.json` 后，在容器内执行一次重载即可，Gateway 会热加载：
 
 ```bash
-openclaw models set glm/glm-4.7
+# 容器内
+reapply_openclaw_config
+
+# 或宿主机
+cd .system && docker compose exec dev reapply_openclaw_config
 ```
+
+---
+
+## 引用模型与切换默认模型
+
+- 引用格式：`provider_id/model_id`，例如 `glm/glm-4.7`、`ark/deepseek-v3.2`。
+- 改默认模型：编辑 `openclaw-runtime.json` 中的 `models.primary`，再执行 `reapply_openclaw_config`。
+- 或容器内临时切换：`openclaw models set glm/glm-4.7`。
 
 ---
 
 ## Qwen Portal（免费 OAuth）
 
-Qwen Portal 通过 OAuth 设备码流程提供免费的 Qwen 模型访问（2000 次/天）。
-
-**这不是 API Key 模式，无法通过 `.env` 配置，需要在容器内执行一次性登录：**
-
-### 初始化步骤
+Qwen Portal 为设备码 OAuth，**不能写在 openclaw-runtime.json**，需在容器内一次性登录：
 
 ```bash
-# 1. 进入容器
 docker compose exec dev bash
-
-# 2. 启用 qwen-portal-auth 插件（openclaw.json 中已预配置，此步可选）
-openclaw plugins enable qwen-portal-auth
-
-# 3. 重启 Gateway 使插件生效
-# 如果 Gateway 正在运行，先 Ctrl+C 停止，然后：
-openclaw gateway
-
-# 4. 执行 OAuth 登录（会显示设备码，用浏览器打开 URL 并输入）
 openclaw models auth login --provider qwen-portal --set-default
-
-# 5. 登录成功后，可用以下模型：
-#    - qwen-portal/coder-model
-#    - qwen-portal/vision-model
 ```
 
-### 切换到 Qwen Portal
-
-```bash
-openclaw models set qwen-portal/coder-model
-```
-
-或在 `.env` 中设置：
-
-```bash
-LLM_PRIMARY_MODEL=qwen-portal/coder-model
-```
-
-### 注意事项
-
-- OAuth token 会自动刷新，若失效需重新执行 `openclaw models auth login --provider qwen-portal`
-- 如果之前已用 Qwen Code CLI 登录过，OpenClaw 会自动同步 `~/.qwen/oauth_creds.json` 中的凭证
-- Qwen Portal 的凭证存储在 `openclaw_data` 数据卷中，容器重建不丢失
-- 免费额度有限（2000 次/天），适合轻度使用或作为 fallback
+登录后可用 `qwen-portal/coder-model` 等，或在 runtime 中把 `models.primary` 设为 `qwen-portal/coder-model`（需先登录过）。
 
 ---
 
-## 运行时配置原理
+## OpenClaw 中的模型与 Embedding
+
+- **模型**：由 `agents.defaults.model.primary`、`models.providers` 等控制，注入脚本会把 `openclaw-runtime.json` 的 `models` 写入这些位置。
+- **Embedding**：由 `agents.defaults.memorySearch` 控制，支持**远程**（OpenAI 兼容）或**本地**（GGUF）。详见 [OpenClaw Memory](https://docs.openclaw.ai/concepts/memory)。
+
+### 远程 Embedding（默认）
+
+在 `embedding` 中填写 `apiKey`（及可选 `baseUrl`、`model`），注入后等价于 OpenClaw 的 `memorySearch.provider = "openai"` + `remote.baseUrl/apiKey` + `model`（缺省 `embedding-3`）。
+
+### Local Embedding（本地模型）
+
+按官方配置，本地 embedding 需设置 `memorySearch.provider = "local"` 和 `memorySearch.local.modelPath`（GGUF 文件路径或 `hf:` URI）。可选 `memorySearch.fallback = "none"` 避免本地失败时回退到远程。
+
+在 **openclaw-runtime.json** 中这样写即可（与远程二选一）：
+
+```json
+"embedding": {
+  "provider": "local",
+  "local": {
+    "modelPath": "hf:ggml-org/embeddinggemma-300m-qat-q8_0-GGUF/embeddinggemma-300m-qat-Q8_0.gguf"
+  },
+  "fallback": "none"
+}
+```
+
+- **modelPath**：本地 GGUF 文件路径，或 HuggingFace 短链接（如 `hf:ggml-org/embeddinggemma-300m-qat-q8_0-GGUF/embeddinggemma-300m-qat-Q8_0.gguf`，约 0.6GB，首次会拉取）。不填则使用上述默认。
+- **modelCacheDir**（可选）：本地缓存目录，可写在 `embedding.local.modelCacheDir`。
+- **fallback**：设为 `"none"` 时本地失败也不走远程；不设则可能回退到 openai 等。
+
+OpenClaw 使用 **node-llama-cpp**（Node 原生模块，封装 llama.cpp）跑本地 embedding，容器内需具备对应原生依赖；若未装过可参考官方 [Local embedding auto-download](https://docs.openclaw.ai/concepts/memory) 与 `pnpm approve-builds`。
+
+**GGUF 如何被使用、是否会自起推理服务？**  
+不会单独起一个推理服务。Gateway **进程内**通过 node-llama-cpp 按需加载你配置的 GGUF 文件，在**同一进程**里做向量推理：首次做 memory 索引或执行 `memory_search` 时会加载模型，之后复用已加载的模型。无需也无需配置单独的 llama-server / Ollama 等。
+
+#### 使用 workspace 下的 Qwen3-Embedding-0.6B-GGUF
+
+若已将模型放到 **workspace/embeddings/Qwen3-Embedding-0.6B-GGUF/**，在 **openclaw-runtime.json** 中配置为：
+
+```json
+"embedding": {
+  "provider": "local",
+  "local": {
+    "modelPath": "/workspace/embeddings/Qwen3-Embedding-0.6B-GGUF/Qwen3-Embedding-0.6B-Q8_0.gguf"
+  },
+  "fallback": "none"
+}
+```
+
+若使用 f16 量化，可改为 `Qwen3-Embedding-0.6B-f16.gguf`。
+
+---
+
+## 运行时配置流程
 
 ```
-.env (环境变量)
+config/openclaw.json          （项目模板，不含密钥）
+config/openclaw-runtime.json  （你维护的配置：Gateway/飞书/模型/Embedding）
     ↓
-docker-compose.yml (env_file + environment 注入容器)
+entrypoint 启动时：inject_openclaw_config.py --runtime openclaw-runtime.json → 写入 ~/.openclaw/openclaw.json
     ↓
-entrypoint.sh (解析 LLM_PROVIDER_* → jq 注入 openclaw.json)
-    ↓
-~/.openclaw/openclaw.json (运行时配置，含 models.providers)
-    ↓
-openclaw gateway (读取配置，启动 LLM 路由)
+openclaw gateway 读取 ~/.openclaw/openclaw.json 并热加载变更
 ```
 
-- `config/openclaw.json` 是**项目模板**（不含密钥、不含 provider 模型列表）
-- 运行时配置是模板的副本 + entrypoint 动态注入的 provider 信息
-- 密钥只出现在 `.env` 和容器内的运行时配置中，不进入 Git
+- `openclaw-runtime.json` 含密钥，不提交 Git（已加入 .gitignore）。
+- 改配置后执行 `reapply_openclaw_config` 即可热生效，无需重启容器。

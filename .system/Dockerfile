@@ -160,10 +160,11 @@ COPY brain/            /opt/sisyphus-brain/
 # ── config/ — 助手配置 ──
 COPY config/           /workspace/config/
 
-# ── OpenClaw 配置注入脚本（entrypoint 调用，替代 jq）──
+# ── OpenClaw 配置注入脚本（entrypoint 调用；reapply 供热重载）──
 RUN mkdir -p /usr/local/lib/sisyphus
 COPY .system/scripts/inject_openclaw_config.py /usr/local/lib/sisyphus/
-RUN chmod +x /usr/local/lib/sisyphus/inject_openclaw_config.py
+COPY .system/scripts/reapply_openclaw_config.sh /usr/local/bin/reapply_openclaw_config
+RUN chmod +x /usr/local/lib/sisyphus/inject_openclaw_config.py /usr/local/bin/reapply_openclaw_config
 
 # ── tools/ — 工具箱 ──
 COPY tools/            /workspace/tools/

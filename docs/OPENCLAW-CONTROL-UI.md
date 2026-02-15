@@ -85,58 +85,19 @@ openclaw devices list
 openclaw devices approve <requestId>
 ```
 
-若 `.env` 里已配置 `OPENCLAW_GATEWAY_TOKEN` 但配置里还没有 token，可先在**宿主机**执行 `docker compose exec dev openclaw config get gateway.auth.token` 查看当前 token（若报错则需在 `.system/.env` 中设置 `OPENCLAW_GATEWAY_TOKEN` 并重启容器），再在容器内把该 token 写入 `gateway.auth.token` 与 `gateway.remote.token`。
-
-若希望由 entrypoint 重新注入配置，可**在宿主机**执行 `docker compose -f .system/docker-compose.yml restart dev`（需在 `.system` 所在目录），再进容器执行 `openclaw devices list`。
+若 Gateway 尚未配置 token，在 `config/openclaw-runtime.json` 的 `gateway.token` 中填写，再执行 `reapply_openclaw_config` 或重启容器。获取当前 token：`docker compose exec dev openclaw config get gateway.auth.token`。
 
 ---
 
-## 4. 让 `.env` 中的 `OPENCLAW_GATEWAY_TOKEN` 生效
+## 4. Gateway Token 配置
 
-在 `.system/.env` 中设置 `OPENCLAW_GATEWAY_TOKEN` 后，需要让 Gateway 实际使用该 token。
+Gateway Token 现统一在 **config/openclaw-runtime.json** 的 `gateway.token` 中配置。容器启动时 entrypoint 会读取该文件并注入 `openclaw.json`。
 
-### 4.1 当前机制（entrypoint 已支持）
+1. 编辑 `config/openclaw-runtime.json`，设置 `gateway.token` 为你的 token。
+2. 执行 `reapply_openclaw_config`（热加载）或重启容器。
+3. Control UI 连接时使用该 token 即可。
 
-容器入口脚本 `entrypoint.sh` 会：
-
-1. 将 `OPENCLAW_GATEWAY_TOKEN` 写入 `~/.openclaw/.env`
-2. 若 `~/.openclaw/openclaw.json` 是符号链接（指向 workspace 的 config），会先改为实体文件（复制到数据卷），避免把 token 写回仓库
-3. 用 `jq` 在 `openclaw.json` 中设置 `gateway.auth.mode = "token"` 和 `gateway.auth.token = $OPENCLAW_GATEWAY_TOKEN`
-
-因此只需在 `.env` 中配置并重启即可。
-
-### 4.2 操作步骤
-
-1. 编辑 `.system/.env`，设置：
-
-   ```bash
-   OPENCLAW_GATEWAY_TOKEN=你的token
-   ```
-
-2. 重启容器使 entrypoint 重新执行：
-
-   ```bash
-   cd .system
-   docker compose restart dev
-   ```
-
-   或重新构建并启动：
-
-   ```bash
-   docker compose up -d --build
-   ```
-
-3. 重启后，Control UI 使用 `.env` 中配置的 token 连接即可。
-
-### 4.3 生成新 Token（可选）
-
-若需重新生成 Gateway Token，可在容器内执行：
-
-```bash
-docker compose exec dev openclaw doctor --generate-gateway-token
-```
-
-再将生成的值写入 `.system/.env` 的 `OPENCLAW_GATEWAY_TOKEN`，并重启容器。
+生成新 token：`docker compose exec dev openclaw doctor --generate-gateway-token`，再把输出填入 `openclaw-runtime.json` 的 `gateway.token`。
 
 ---
 
@@ -145,8 +106,8 @@ docker compose exec dev openclaw doctor --generate-gateway-token
 | 项目           | 说明 |
 |----------------|------|
 | 端口 18789     | OpenClaw Gateway（HTTP + WebSocket），Control UI 同端口 |
-| `.system/.env` | `OPENCLAW_GATEWAY_TOKEN` 在此配置 |
-| `config/openclaw.json` | 仓库内配置模板；运行时若为 symlink，entrypoint 会复制到 `~/.openclaw/` 再注入 token |
+| `config/openclaw-runtime.json` | Gateway token、飞书、模型、Embedding 等（entrypoint 读取并注入） |
+| `config/openclaw.json` | 仓库内配置模板；entrypoint 复制到 `~/.openclaw/` 后按 runtime 注入 |
 | `openclaw_data/openclaw.json` | 数据卷中的实际配置（`~/.openclaw` 挂载） |
 
 ---

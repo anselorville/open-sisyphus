@@ -1,0 +1,33 @@
+{
+  "gateway": {
+    "token": ""
+  },
+  "channels": {
+    "feishu": {
+      "appId": "",
+      "appSecret": ""
+    }
+  },
+  "models": {
+    "primary": "glm/glm-4.7",
+    "providers": {
+      "glm": {
+        "baseUrl": "https://open.bigmodel.cn/api/paas/v4",
+        "apiKey": "",
+        "models": ["glm-4.7"]
+      },
+      "ark": {
+        "baseUrl": "https://ark.cn-beijing.volces.com/api/coding",
+        "apiKey": "",
+        "models": ["deepseek-v3.2", "deepseek-r1"]
+      }
+    }
+  },
+  "embedding": {
+    "provider": "local",
+    "local": {
+      "modelPath": "/path/to/model.gguf"
+    },
+    "fallback": "none"
+  }
+}

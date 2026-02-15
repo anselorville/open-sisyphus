@@ -87,31 +87,16 @@ cd open-sisyphus
 cp .system/.env.example .system/.env
 ```
 
-### 2.3 编辑 `.system/.env`
+### 2.3 编辑 `.system/.env` 与 OpenClaw 配置
 
-```bash
-# ── 必填 ──────────────────────────────────────
-ANTHROPIC_API_KEY=sk-ant-xxxxx
+**.env**（compose 用）：填写 `MOUNT_ROOT`、`POSTGRES_*`、`ROOT_PASSWORD` 等，见 `.system/.env.example`。
 
-# ── 可选：数据库（默认即可用） ─────────────────
-POSTGRES_USER=dev
-POSTGRES_PASSWORD=dev
-POSTGRES_DB=app
+**OpenClaw（模型 / 飞书 / Gateway token）**：在 **config/openclaw-runtime.json** 中配置（复制自 `config/openclaw-runtime.example.json` 并填写）。详见 [docs/LLM-PROVIDERS.md](LLM-PROVIDERS.md)。
 
-# ── 可选：飞书（详见 docs/FEISHU-CHANNEL-SETUP.md）
-FEISHU_APP_ID=cli_xxx
-FEISHU_APP_SECRET=your_secret
-
-# ── 可选：Gateway Token ───────────────────────
-OPENCLAW_GATEWAY_TOKEN=
-```
-
-**最低启动要求**：只需填 `ANTHROPIC_API_KEY` 或 `OPENAI_API_KEY` 其一。
-
-**运行时如何选模型与 BASE URL**：
-- **Anthropic**：`.env` 中可设 `ANTHROPIC_BASE_URL`（自定义接口）、`ANTHROPIC_MODEL`（如 `claude-sonnet-4-20250514`）。
-- **OpenAI / 兼容**：可设 `OPENAI_BASE_URL`、`OPENAI_MODEL`（如 `gpt-4o`）；或改 `config/openclaw.json` 里 `models.providers.openai.baseUrl` 与 `agents.defaults.model`。
-- **对话中**：在飞书里发 `/model` 可查看或切换当前模型。
+- 飞书：`channels.feishu.appId`、`appSecret`
+- 模型：`models.providers`、`models.primary`
+- Gateway token：`gateway.token`
+- **对话中**：飞书里发 `/model` 可查看或切换当前模型。
 
 ---
 
@@ -223,7 +208,7 @@ nvidia-smi                        # GPU（如适用）
 
 #### A.2 配置凭证
 
-确保 `.system/.env` 已填写飞书凭证，然后重启容器：
+确保 `config/openclaw-runtime.json` 已填写飞书凭证（`channels.feishu`），然后执行 `reapply_openclaw_config` 或重启容器：
 
 ```bash
 cd .system
