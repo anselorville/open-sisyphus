@@ -19,6 +19,8 @@ cp config/openclaw-runtime.example.json config/openclaw-runtime.json
 cd .system && docker compose up -d
 ```
 
+**容器重启与 `openclaw onboard`**：entrypoint 仅在 `~/.openclaw/openclaw.json` 不存在或是符号链接时，才用仓库模板覆盖该文件；若该文件已存在（例如你曾用 `openclaw onboard` 配置过提供商），则不会覆盖，只做 runtime 注入。因此 onboard 写入的配置在重启后会被保留。若希望完全由配置仓库驱动，请把提供商写在 `config/openclaw-runtime.json` 的 `models.providers` 中。
+
 ---
 
 ## 配置文件结构（openclaw-runtime.json）

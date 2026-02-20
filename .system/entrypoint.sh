@@ -46,6 +46,8 @@ fi
 
 # ── 确保 inbox 等必备文件存在（避免 [tools] read failed: ENOENT）────────────
 mkdir -p /workspace/inbox
+# Playwright / browser 工具会访问此缓存目录，不存在时会导致 exec 报错
+mkdir -p "$HOME/.cache/ms-playwright"
 for _f in backlog.md blocked.md ideas.md; do
     [ -f "/workspace/inbox/$_f" ] || printf '# %s\n\n*（占位，可编辑）\n' "${_f%.md}" > "/workspace/inbox/$_f"
 done
@@ -57,15 +59,14 @@ WORKSPACE_CONFIG="/workspace/config/openclaw.json"
 RUNTIME_CONFIG="/workspace/config/openclaw-runtime.json"
 mkdir -p "$OPENCLAW_HOME"
 
-# 从 workspace 取模板，复制为实体文件后按 openclaw-runtime.json 注入（不写回仓库）
-if [ -f "$WORKSPACE_CONFIG" ]; then
-    ln -sf "$WORKSPACE_CONFIG" "$OPENCLAW_HOME/openclaw.json"
-fi
 _cfg="$OPENCLAW_HOME/openclaw.json"
-if [ -L "$_cfg" ]; then
-    _src="$(readlink -f "$_cfg")"
-    rm -f "$_cfg"
-    cp -f "$_src" "$_cfg"
+# 仅当 openclaw.json 不存在或是符号链接时，用仓库模板覆盖（保留 openclaw onboard 的持久化）
+if [ -f "$WORKSPACE_CONFIG" ]; then
+    if [ ! -f "$_cfg" ] || [ -L "$_cfg" ]; then
+        _src="$(readlink -f "$WORKSPACE_CONFIG" 2>/dev/null || echo "$WORKSPACE_CONFIG")"
+        rm -f "$_cfg"
+        cp -f "$_src" "$_cfg"
+    fi
 fi
 
 # 读取 openclaw-runtime.json 注入 Gateway/飞书/模型/Embedding，再启动 gateway
