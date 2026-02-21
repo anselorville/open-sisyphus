@@ -53,6 +53,25 @@ def apply_runtime(cfg: dict, rt: dict) -> None:
         cfg["channels"]["feishu"]["accounts"]["main"]["appSecret"] = app_secret
         print("[inject_openclaw_config] ✓ 飞书凭证已注入 channels.feishu.accounts.main")
 
+    # ------ Telegram ------
+    telegram = (rt.get("channels") or {}).get("telegram") or {}
+    bot_token = (telegram.get("botToken") or "").strip()
+    if bot_token:
+        ensure_path(cfg, "channels.telegram")
+        cfg["channels"]["telegram"]["enabled"] = telegram.get("enabled", True)
+        cfg["channels"]["telegram"]["botToken"] = bot_token
+        if telegram.get("dmPolicy") is not None:
+            cfg["channels"]["telegram"]["dmPolicy"] = telegram["dmPolicy"]
+        else:
+            cfg["channels"]["telegram"].setdefault("dmPolicy", "pairing")
+        if "groupPolicy" in telegram:
+            cfg["channels"]["telegram"]["groupPolicy"] = telegram["groupPolicy"]
+        if "allowFrom" in telegram and isinstance(telegram["allowFrom"], list):
+            cfg["channels"]["telegram"]["allowFrom"] = telegram["allowFrom"]
+        if "groups" in telegram and isinstance(telegram["groups"], dict):
+            cfg["channels"]["telegram"]["groups"] = telegram["groups"]
+        print("[inject_openclaw_config] ✓ Telegram 已注入 channels.telegram")
+
     # ------ LLM providers + 默认模型 ------
     models_cfg = rt.get("models") or {}
     providers_src = models_cfg.get("providers") or {}

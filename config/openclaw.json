@@ -2,6 +2,7 @@
   "agents": {
     "defaults": {
       "workspace": "/workspace",
+      "timeoutSeconds": 900,
       "model": {
         "primary": "glm/glm-4.7",
         "fallbacks": ["ark/deepseek-v3.2"]

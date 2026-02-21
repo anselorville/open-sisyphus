@@ -59,6 +59,15 @@ cd .system && docker compose exec dev reapply_openclaw_config
 
 ---
 
+## 超时与 “LLM request timed out”
+
+报错 `Agent failed before reply: All models failed (2): glm/glm-4.7: LLM request timed out...` 时，可做两件事：
+
+1. **调大 agent 超时**：在 `config/openclaw.json` 的 `agents.defaults` 中设置 **`timeoutSeconds`**（单位：秒）。当前模板已设为 `600`（10 分钟）。若 GLM 或网络较慢，可改为更大（如 `900`、`1200`），改完后执行 `reapply_openclaw_config` 或重启容器。
+2. **单次 LLM 请求超时**：OpenClaw 对单次调用 LLM 的 HTTP 请求可能有内置超时；若官方未在配置中暴露该值，只能通过换更快模型/网络或等 OpenClaw 后续版本支持可配置的 request timeout 来缓解。
+
+---
+
 ## Qwen Portal（免费 OAuth）
 
 Qwen Portal 为设备码 OAuth，**不能写在 openclaw-runtime.json**，需在容器内一次性登录：

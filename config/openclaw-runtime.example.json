@@ -6,6 +6,12 @@
     "feishu": {
       "appId": "",
       "appSecret": ""
+    },
+    "telegram": {
+      "enabled": true,
+      "botToken": "",
+      "dmPolicy": "pairing",
+      "groups": { "*": { "requireMention": true } }
     }
   },
   "models": {
