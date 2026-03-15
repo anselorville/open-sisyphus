@@ -30,8 +30,7 @@ services:
     tty: true
     working_dir: /workspace
     # ---------- 环境变量文件 ----------
-    # .env 中的所有变量（包括 LLM_PROVIDER_*）都会注入容器环境
-    # entrypoint.sh 会自动解析 LLM_PROVIDER_{NAME}_BASE_URL/API_KEY/MODELS 并注入 openclaw.json
+    # .env 中的所有变量都会注入容器环境
     env_file:
       - .env
     # ---------- 桥接网络 + 端口发布（便于 SSH / OpenClaw 从宿主机或远程访问）----------
@@ -54,7 +53,6 @@ services:
       - NVIDIA_DRIVER_CAPABILITIES=compute,utility,graphics
       # Sisyphus
       - PYTHONPATH=/workspace
-      # OpenClaw 模型/飞书/Gateway token 等均在 config/openclaw-runtime.json 中配置
       # SSH：设置后可用 root + 该密码 ssh -p 10220 root@<主机> 登录
       - ROOT_PASSWORD=${ROOT_PASSWORD:-}
     # ---------- NVIDIA GPU 直通 ----------
@@ -68,7 +66,7 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    # 容器启动时以前台运行 OpenClaw Gateway（entrypoint 先读 openclaw-runtime.json 注入再 exec）
+    # 容器启动时以前台运行 OpenClaw Gateway（/root/.openclaw 已 bind mount，直接使用已有配置）
     command: ["openclaw", "gateway"]
 
   postgres:

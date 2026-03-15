@@ -5,9 +5,11 @@
 # 职责：
 #   1. 加载 nvm + 激活 Python venv
 #   2. 同步 brain/（镜像更新 = 代码更新）
-#   3. 链接 OpenClaw 配置，用脚本注入环境变量（inject_openclaw_config.py）
-#   4. 确保 inbox 等必备文件存在（避免 tools 读文件 ENOENT）
-#   5. 执行传入的命令（默认 /bin/bash）
+#   3. 确保 inbox 等必备文件存在（避免 tools 读文件 ENOENT）
+#   4. 执行传入的命令（默认 /bin/bash）
+#
+# OpenClaw 配置（openclaw.json）由外部管理：
+#   /root/.openclaw 已通过 bind mount 映射到宿主机，容器启动后直接使用已有配置。
 #
 # /workspace 可为 bind mount 的宿主机目录；若为空则从 skeleton 初始化。
 # ============================================================================
@@ -51,32 +53,6 @@ mkdir -p "$HOME/.cache/ms-playwright"
 for _f in backlog.md blocked.md ideas.md; do
     [ -f "/workspace/inbox/$_f" ] || printf '# %s\n\n*（占位，可编辑）\n' "${_f%.md}" > "/workspace/inbox/$_f"
 done
-
-# ── OpenClaw 配置：模板 + 运行时配置注入 ─────────────────────────────────────
-
-OPENCLAW_HOME="$HOME/.openclaw"
-WORKSPACE_CONFIG="/workspace/config/openclaw.json"
-RUNTIME_CONFIG="/workspace/config/openclaw-runtime.json"
-mkdir -p "$OPENCLAW_HOME"
-
-_cfg="$OPENCLAW_HOME/openclaw.json"
-# 仅当 openclaw.json 不存在或是符号链接时，用仓库模板覆盖（保留 openclaw onboard 的持久化）
-if [ -f "$WORKSPACE_CONFIG" ]; then
-    if [ ! -f "$_cfg" ] || [ -L "$_cfg" ]; then
-        _src="$(readlink -f "$WORKSPACE_CONFIG" 2>/dev/null || echo "$WORKSPACE_CONFIG")"
-        rm -f "$_cfg"
-        cp -f "$_src" "$_cfg"
-    fi
-fi
-
-# 读取 openclaw-runtime.json 注入 Gateway/飞书/模型/Embedding，再启动 gateway
-if [ -f "$_cfg" ]; then
-    python3 /usr/local/lib/sisyphus/inject_openclaw_config.py --runtime "$RUNTIME_CONFIG" "$_cfg"
-fi
-
-# ── OpenClaw 安全：状态目录与配置仅当前用户可访问 ─────────────────────────────
-chmod 700 "$OPENCLAW_HOME"
-[ -f "$OPENCLAW_HOME/openclaw.json" ] && chmod 600 "$OPENCLAW_HOME/openclaw.json"
 
 # ── 执行命令 ───────────────────────────────────────────────────────────────
 
