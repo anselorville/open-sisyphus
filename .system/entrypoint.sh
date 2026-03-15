@@ -29,6 +29,9 @@ export NVM_DIR="$HOME/.nvm"
 
 source /opt/venv/bin/activate
 
+# ── OpenClaw 安装（始终安装最新版，确保与持久化配置文件版本一致）────────────
+npm install -g openclaw --silent
+
 # ── 空 workspace 初始化（bind mount 空目录时）────────────────────────────────
 if [ ! -f /workspace/SOUL.md ] && [ -d /opt/sisyphus-workspace-skeleton ]; then
     cp -a /opt/sisyphus-workspace-skeleton/. /workspace/

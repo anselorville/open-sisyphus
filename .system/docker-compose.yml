@@ -38,6 +38,7 @@ services:
     ports:
       - "10220:10220"   # SSH
       - "18789:18789"   # OpenClaw Gateway
+      - "12000-12050:12000-12050"   # 应用端口区间
     volumes:
       - ${MOUNT_ROOT}/workspace_data:/workspace
       - ${MOUNT_ROOT}/openclaw_data:/root/.openclaw

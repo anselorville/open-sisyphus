@@ -83,18 +83,17 @@ RUN curl -fsSL https://dl.google.com/linux/linux_signing_key.pub \
        google-chrome-stable fonts-liberation fonts-noto-cjk \
     && rm -rf /var/lib/apt/lists/*
 
-# --- 全局 npm 包（pnpm + playwright + @playwright/mcp + openclaw + feishu 插件） ---
+# --- 全局 npm 包（pnpm + playwright + @playwright/mcp） ---
 # playwright       — OpenClaw 内置 browser 工具的核心依赖（navigate/act/snapshot/screenshot）
 # @playwright/mcp  — Playwright MCP Server（.mcp.json 的备选浏览器控制方式）
 # PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 — 跳过 Chromium 下载，使用上面已安装的系统 Chrome
+# 注：openclaw 在容器启动时由 entrypoint.sh 安装最新版，避免镜像版本落后于持久化配置文件
 ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
 RUN . "$NVM_DIR/nvm.sh" \
-    && npm install -g pnpm playwright @playwright/mcp openclaw \
-    && openclaw plugins install @openclaw/feishu
+    && npm install -g pnpm playwright @playwright/mcp
 
 # 验证
-RUN . "$NVM_DIR/nvm.sh" && node -v && npm -v && python3.13 --version \
-    && openclaw --version
+RUN . "$NVM_DIR/nvm.sh" && node -v && npm -v && python3.13 --version
 
 
 # ╔══════════════════════════════════════════════════════════════════════════╗
